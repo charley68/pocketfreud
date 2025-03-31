@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PocketFreud - Talking Helps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #e0f2f1, #fdfcfb);
+      color: #2c2c2c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    .logo {
+      max-width: 180px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin: 0.5rem 0;
+    }
+    p {
+      font-size: 1.2rem;
+      max-width: 600px;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    input[type="email"] {
+      padding: 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 260px;
+      font-size: 1rem;
+    }
+    .cta-button, .try-button {
+      background-color: #7BAFD4;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .cta-button:hover, .try-button:hover {
+      background-color: #6aa3c7;
+    }
+    #chat-frame {
+      display: none;
+      width: 100%;
+      max-width: 500px;
+      height: 600px;
+      border: none;
+      margin-top: 20px;
+    }
+    footer {
+      margin-top: auto;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <img src="logo.png" alt="PocketFreud Logo" class="logo">
+  <h1>PocketFreud</h1>
+  <p>Talking helps. PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.</p>
+
+  <form action="https://formspree.io/f/your-form-id" method="POST">
+    <input type="email" name="email" placeholder="Enter your email to get updates" required>
+    <button type="submit" class="cta-button">Notify Me</button>
+  </form>
+
+  <button class="try-button" onclick="document.getElementById('chat-frame').style.display='block'">Try Me Out</button>
+
+  <iframe id="chat-frame" src="https://chat-pocketfreud.netlify.app"></iframe>
+
+  <footer>
+    &copy; 2025 PocketFreud. All rights reserved.
+  </footer>
+</body>
+</html>
