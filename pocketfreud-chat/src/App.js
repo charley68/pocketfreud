@@ -17,6 +17,9 @@ function App() {
 const sendMessage = async () => {
   if (!input.trim()) return;
 
+  console.log("Sending a message:", input);
+
+
   const newMessages = [...messages, { role: 'user', content: input }];
   setMessages(newMessages);
   setInput('');
