@@ -1,85 +1,82 @@
-// PocketFreud: Minimal React Chat App with ChatGPT API
-
 import React, { useState } from 'react';
 import './App.css';
 
 const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
-console.log("API Key in use:", OPENAI_API_KEY);
-
 
 function App() {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi, I’m PocketFreud. How are you feeling today?' }
   ]);
   const [input, setInput] = useState('');
+  const [model, setModel] = useState('gpt-3.5-turbo'); // default
   const [loading, setLoading] = useState(false);
 
-const sendMessage = async () => {
-  if (!input.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-  console.log("Sending a message:", input);
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
+    setInput('');
+    setLoading(true);
 
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "system",
+              content: "You are PocketFreud, a kind, calm, and supportive AI trained to help people talk through their feelings and support their mental well-being. Speak in a gentle, understanding tone."
+            },
+            ...newMessages
+          ],
+        }),
+      });
 
-  const newMessages = [...messages, { role: 'user', content: input }];
-  setMessages(newMessages);
-  setInput('');
-  setLoading(true);
+      const data = await response.json();
+      console.log("OpenAI response:", data);
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: newMessages,
-      }),
-    });
-
-    const data = await response.json();
-
-    // Log full response for debugging
-    console.log("OpenAI response:", data);
-
-    if (!response.ok) {
-      let errorMessage = "Something went wrong.";
-      if (response.status === 429) {
-        errorMessage = "I'm being rate-limited right now. Please wait a few seconds and try again.";
-      } else if (data?.error?.message) {
-        errorMessage = data.error.message;
+      if (!response.ok) {
+        const errorMessage = data?.error?.message || "Something went wrong.";
+        setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
+      } else {
+        setMessages([...newMessages, data.choices[0].message]);
       }
-
-      setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
-    } else if (data?.choices?.[0]?.message) {
-      setMessages([...newMessages, data.choices[0].message]);
-    } else {
-      setMessages([...newMessages, { role: 'assistant', content: "Unexpected response format." }]);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setMessages([...newMessages, {
+        role: 'assistant',
+        content: "Oops! Network or server error. Please try again soon."
+      }]);
+    } finally {
+      setLoading(false);
     }
-
-  } catch (err) {
-    console.error("Fetch error:", err);
-    setMessages([...newMessages, {
-      role: 'assistant',
-      content: "Oops! Network or server error. Please try again soon."
-    }]);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter') sendMessage();
   };
 
   return (
     <div className="chat-container">
       <h1>PocketFreud</h1>
+
+      {/* Model selector */}
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={{ fontWeight: 'bold' }}>Model:</label>{' '}
+        <select value={model} onChange={(e) => setModel(e.target.value)}>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106</option>
+          <option value="gpt-4">gpt-4 (if available)</option>
+          <option value="text-davinci-003">text-davinci-003 (legacy)</option>
+        </select>
+      </div>
+
       <div className="chat-box">
         {messages.map((msg, index) => (
           <div key={index} className={`chat-msg ${msg.role}`}>
@@ -88,38 +85,16 @@ const sendMessage = async () => {
         ))}
         {loading && <div className="chat-msg assistant">Typing...</div>}
       </div>
+
       <div className="input-box">
-        <textarea
+        <input
+          type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          rows={3}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '1rem',
-            resize: 'vertical'
-          }}
         />
-        <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
-          <button
-            onClick={sendMessage}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6a5acd',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            Send
-          </button>
-        </div>
+        <button onClick={sendMessage}>Send</button>
       </div>
     </div>
   );
