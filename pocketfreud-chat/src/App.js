@@ -5,7 +5,6 @@ import './App.css';
 
 const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 
-
 function App() {
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi, I’m PocketFreud. How are you feeling today?' }
@@ -46,7 +45,10 @@ function App() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   return (
@@ -61,14 +63,37 @@ function App() {
         {loading && <div className="chat-msg assistant">Typing...</div>}
       </div>
       <div className="input-box">
-        <input
-          type="text"
+        <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder="Type a mzessage..."
+          rows={3}
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #ccc',
+            fontSize: '1rem',
+            resize: 'vertical'
+          }}
         />
-        <button onClick={sendMessage}>Send</button>
+        <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+          <button
+            onClick={sendMessage}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6a5acd',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
