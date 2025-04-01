@@ -14,37 +14,58 @@ function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+const sendMessage = async () => {
+  if (!input.trim()) return;
 
-    const newMessages = [...messages, { role: 'user', content: input }];
-    setMessages(newMessages);
-    setInput('');
-    setLoading(true);
+  const newMessages = [...messages, { role: 'user', content: input }];
+  setMessages(newMessages);
+  setInput('');
+  setLoading(true);
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: newMessages,
-        }),
-      });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: newMessages,
+      }),
+    });
 
-      const data = await response.json();
-      const reply = data.choices[0].message;
-      setMessages([...newMessages, reply]);
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setMessages([...newMessages, { role: 'assistant', content: 'Oops! Something went wrong.' }]);
-    } finally {
-      setLoading(false);
+    const data = await response.json();
+
+    // Log full response for debugging
+    console.log("OpenAI response:", data);
+
+    if (!response.ok) {
+      let errorMessage = "Something went wrong.";
+      if (response.status === 429) {
+        errorMessage = "I'm being rate-limited right now. Please wait a few seconds and try again.";
+      } else if (data?.error?.message) {
+        errorMessage = data.error.message;
+      }
+
+      setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
+    } else if (data?.choices?.[0]?.message) {
+      setMessages([...newMessages, data.choices[0].message]);
+    } else {
+      setMessages([...newMessages, { role: 'assistant', content: "Unexpected response format." }]);
     }
-  };
+
+  } catch (err) {
+    console.error("Fetch error:", err);
+    setMessages([...newMessages, {
+      role: 'assistant',
+      content: "Oops! Network or server error. Please try again soon."
+    }]);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
