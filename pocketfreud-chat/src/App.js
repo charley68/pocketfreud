@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import './App.css';
 
 const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+console.log("API Key in use:", OPENAI_API_KEY);
+
 
 function App() {
   const [messages, setMessages] = useState([
@@ -67,7 +69,7 @@ function App() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a mzessage..."
+          placeholder="Type a message..."
           rows={3}
           style={{
             width: '100%',
