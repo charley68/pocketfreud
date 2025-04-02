@@ -10,7 +10,7 @@ resource "aws_instance" "app_server" {
   associate_public_ip_address = true
   key_name      = var.key_pair_name
 
-  user_data = file("setup.sh")
+  user_data = file("setup-docker.sh")
 
   tags = {
     Name = "pocketfreud-app-server"

@@ -1,35 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [email, setEmail] = useState('');
-  const [user, setUser] = useState(null);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi, I’m PocketFreud. How are you feeling today?' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    checkSession();
-  }, []);
-
-  const handleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOtp({ email });
-    if (error) alert(error.message);
-    else alert("Magic link sent! Check your inbox.");
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -39,17 +16,12 @@ function App() {
     setInput('');
     setLoading(true);
 
-    const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
-
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'mistral',  // or whatever model you're using
           messages: [
             {
               role: "system",
@@ -62,11 +34,12 @@ function App() {
 
       const data = await response.json();
 
-      if (!response.ok || !data?.choices?.[0]?.message) {
+      if (!response.ok || !data?.message?.content) {
         const errorMsg = data?.error?.message || 'Something went wrong.';
         setMessages([...newMessages, { role: 'assistant', content: errorMsg }]);
       } else {
-        setMessages([...newMessages, data.choices[0].message]);
+        const reply = data.message || data.choices?.[0]?.message || { role: 'assistant', content: 'Sorry, I didn’t understand that.' };
+        setMessages([...newMessages, reply]);
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -83,27 +56,9 @@ function App() {
     if (e.key === 'Enter') sendMessage();
   };
 
-  if (!user) {
-    return (
-      <div className="login-box">
-        <h2>Login to PocketFreud</h2>
-        <input
-          type="email"
-          placeholder="Your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button onClick={handleLogin}>Send Magic Link</button>
-      </div>
-    );
-  }
-
   return (
     <div className="chat-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Welcome back, {user.email}</h1>
-        <button onClick={handleLogout}>Logout</button>
-      </div>
+      <h1>Welcome to PocketFreud</h1>
 
       <div className="chat-box">
         {messages.map((msg, index) => (
@@ -129,3 +84,4 @@ function App() {
 }
 
 export default App;
+
