@@ -166,15 +166,16 @@
 </head>
 
 <body>
-  <script>
-    function openChatPopup() {
-      window.open(
-        "https://chat-pocketfreud.netlify.app",
-        "PocketFreudChat",
-        "width=620,height=420,resizable=yes,scrollbars=no"
-      );
-    }
-  </script>
+<script>
+  function openChatPopup() {
+    const popupUrl = window.location.origin;
+    window.open(
+      popupUrl,
+      "PocketFreudChat",
+      "width=620,height=420,resizable=yes,scrollbars=no"
+    );
+  }
+</script>
 
   <div class="header-bar">
     <img src="logo.png" alt="PocketFreud Logo" class="logo" />
