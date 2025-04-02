@@ -1,0 +1,35 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# React build output
+client/build/
+client/.next/
+
+# Environment variables and secrets
+.env
+*.pem
+
+# PM2 logs
+pocketfreud-api.log
+ecosystem.config.js
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+*.lock.hcl
+
+# Log files
+*.log
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+

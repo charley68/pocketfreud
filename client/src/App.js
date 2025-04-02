@@ -1,15 +1,35 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import './App.css';
 
-const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
-
 function App() {
+  const [email, setEmail] = useState('');
+  const [user, setUser] = useState(null);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hi, I’m PocketFreud. How are you feeling today?' }
   ]);
   const [input, setInput] = useState('');
-  const [model, setModel] = useState('gpt-3.5-turbo'); // default
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    checkSession();
+  }, []);
+
+  const handleLogin = async () => {
+    const { data, error } = await supabase.auth.signInWithOtp({ email });
+    if (error) alert(error.message);
+    else alert("Magic link sent! Check your inbox.");
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -19,6 +39,8 @@ function App() {
     setInput('');
     setLoading(true);
 
+    const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -27,7 +49,7 @@ function App() {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model,
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: "system",
@@ -39,16 +61,15 @@ function App() {
       });
 
       const data = await response.json();
-      console.log("OpenAI response:", data);
 
-      if (!response.ok) {
-        const errorMessage = data?.error?.message || "Something went wrong.";
-        setMessages([...newMessages, { role: 'assistant', content: errorMessage }]);
+      if (!response.ok || !data?.choices?.[0]?.message) {
+        const errorMsg = data?.error?.message || 'Something went wrong.';
+        setMessages([...newMessages, { role: 'assistant', content: errorMsg }]);
       } else {
         setMessages([...newMessages, data.choices[0].message]);
       }
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error('Fetch error:', err);
       setMessages([...newMessages, {
         role: 'assistant',
         content: "Oops! Network or server error. Please try again soon."
@@ -62,19 +83,26 @@ function App() {
     if (e.key === 'Enter') sendMessage();
   };
 
+  if (!user) {
+    return (
+      <div className="login-box">
+        <h2>Login to PocketFreud</h2>
+        <input
+          type="email"
+          placeholder="Your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <button onClick={handleLogin}>Send Magic Link</button>
+      </div>
+    );
+  }
+
   return (
     <div className="chat-container">
-      <h1>PocketFreud</h1>
-
-      {/* Model selector */}
-      <div style={{ marginBottom: '1rem' }}>
-        <label style={{ fontWeight: 'bold' }}>Model:</label>{' '}
-        <select value={model} onChange={(e) => setModel(e.target.value)}>
-          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-          <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106</option>
-          <option value="gpt-4">gpt-4 (if available)</option>
-          <option value="text-davinci-003">text-davinci-003 (legacy)</option>
-        </select>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Welcome back, {user.email}</h1>
+        <button onClick={handleLogout}>Logout</button>
       </div>
 
       <div className="chat-box">
@@ -101,4 +129,3 @@ function App() {
 }
 
 export default App;
-
