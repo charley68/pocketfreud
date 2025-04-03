@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PocketFreud - Talking Helps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: url('background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    nav {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      padding: 1rem 2rem;
+      gap: 2rem;
+    }
+    nav a {
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 1rem;
+      transition: opacity 0.3s;
+    }
+    nav a:hover {
+      opacity: 0.7;
+    }
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1rem 2rem;
+    }
+    .logo {
+      max-width: 80px;
+    }
+    .main-title {
+      text-align: center;
+      margin-top: 0rem;
+    }
+    .main-title h1 {
+      font-size: 2.8rem;
+      margin: 0;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    }
+    .main-title h2 {
+      font-size: 1.3rem;
+      font-weight: 400;
+      margin-top: 0.3rem;
+      color: #dddddd;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    p.description {
+      font-size: 1.3rem;
+      max-width: 600px;
+      text-align: center;
+      margin: 2rem auto;
+      color: #e0ddea;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    .try-button {
+      background-color: #7BAFD4;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .try-button:hover {
+      background-color: #6aa3c7;
+    }
+    .chat-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      margin: 3rem auto;
+      max-width: 1000px;
+    }
+    .chat-example {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 300px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .chat-bubble {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      position: relative;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      max-width: 90%;
+      color: #fff;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .chat-bubble.bot {
+      background-color: #6a5acd;
+      align-self: flex-start;
+    }
+    .chat-bubble.user {
+      background-color: #7BAFD4;
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .chat-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      width: 0;
+      height: 0;
+    }
+    .chat-bubble.bot::after {
+      left: -10px;
+      border: 10px solid transparent;
+      border-right-color: #6a5acd;
+      border-left: 0;
+      margin-top: -5px;
+    }
+    .chat-bubble.user::after {
+      right: -10px;
+      border: 10px solid transparent;
+      border-left-color: #7BAFD4;
+      border-right: 0;
+      margin-top: -5px;
+    }
+    .chat-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #333;
+      font-weight: bold;
+    }
+    footer {
+      margin-top: auto;
+      font-size: 0.9rem;
+      color: #ccc;
+      text-align: center;
+      padding: 2rem;
+    }
+  </style>
+</head>
+
+<body>
+<script>
+  function openChatPopup() {
+    const popupUrl = window.location.origin;
+    window.open(
+      popupUrl,
+      "PocketFreudChat",
+      "width=620,height=420,resizable=yes,scrollbars=no"
+    );
+  }
+</script>
+
+  <div class="header-bar">
+    <img src="logo.png" alt="PocketFreud Logo" class="logo" />
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Features</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+  </div>
+
+  <main style="display: flex; flex-direction: column; align-items: center; padding: 0rem;">
+    <div class="main-title">
+      <h1>Pocket Freud</h1>
+      <h2>Talking Helps</h2>
+    </div>
+
+    <p class="description">
+      PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.
+    </p>
+
+    <!-- Inside your main landing page -->
+    <button class="try-button" onclick="window.location.href='/chat/'">Try Me Out</button>
+
+    <div class="chat-container">
+      <div class="chat-example">
+        <div class="chat-bubble bot"><div class="chat-icon">🧠</div>Hi John, how are you feeling today?</div>
+        <div class="chat-bubble user"><div class="chat-icon">👤</div>Not doing so well today.</div>
+        <div class="chat-bubble bot"><div class="chat-icon">🧠</div>I'm sorry to hear that. If you'd like to talk about what's bothering you, I'm here to listen and provide some support.</div>
+      </div>
+      <div class="chat-example">
+        <div class="chat-bubble user"><div class="chat-icon">👤</div>Hey, I'm feeling lonely, upset. I didn't get that job I went for.</div>
+        <div class="chat-bubble bot"><div class="chat-icon">🧠</div>I'm sorry to hear this, Sally. Want to tell me more about the interview? We can work on improvements together and review your C.V and soft skills. We can do some practice interviews if you like?</div>
+      </div>
+      <div class="chat-example">
+        <div class="chat-bubble bot"><div class="chat-icon">🧠</div>Hey Paul, I'm checking in as agreed. How did you get on with those tasks we set yesterday?</div>
+        <div class="chat-bubble user"><div class="chat-icon">👤</div>Ah, i lost my mojo and didn't mange to complete any of them. :-( </div>
+        <div class="chat-bubble bot"><div class="chat-icon">🧠</div>Thats ok Paul. Don;t be hard on yourself. Lets break this down into smaller chunks and i'll help guide you through it at a pace you're comfortble with.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 PocketFreud. All rights reserved.
+  </footer>
+</body>
+</html>

@@ -1,50 +1,77 @@
-
 #!/bin/bash
 
-# Log output
-exec > /var/log/setup-docker.log 2>&1
-set -e
+exec > /var/log/user-data.log 2>&1
 
-echo "==> Updating system and installing dependencies..."
+# 1. System update
 apt-get update -y
 apt-get upgrade -y
+
+# 2. Install base dependencies
 apt-get install -y docker.io docker-compose git curl nginx nodejs npm
 
-echo "==> Enabling Docker to start on boot..."
-systemctl start docker
+# 3. Enable Docker on boot
 systemctl enable docker
+systemctl start docker
 
-echo "==> Installing PM2 globally..."
+# 4. Install PM2 globally for Node
 npm install -g pm2
 
-echo "==> Installing Ollama..."
+# 5. Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 sleep 10
 ollama run mistral &
 
-echo "==> Cloning PocketFreud repository..."
+# 6. Clone your repo
 git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
-echo "==> Setting up backend..."
+# 7. Set up server (Node proxy)
 cd /opt/pocketfreud/server
 npm install
 pm2 start server.js --name pocketfreud-api
 
-echo "==> Building frontend..."
+# 8. Build React chat app
 cd /opt/pocketfreud/client
 npm install
 npm run build
 
-echo "==> Deploying landing page..."
-cp public/index.html /var/www/html/index.html
-cp public/logo.png /var/www/html/logo.png
-cp public/background.jpg /var/www/html/background.jpg
+# 9. Deploy landing page to /
+cp /opt/pocketfreud/index.html /var/www/html/index.html
+cp /opt/pocketfreud/logo.png /var/www/html/logo.png
+cp /opt/pocketfreud/background.jpg /var/www/html/background.jpg
 
-echo "==> Deploying React app to /chat..."
+# 10. Deploy React chat app to /chat
 mkdir -p /var/www/html/chat
 cp -r build/* /var/www/html/chat/
 
-echo "==> Restarting Nginx..."
-systemctl restart nginx
+# 11. Fix Nginx config
+cat <<EOF > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-echo "==> Setup complete!"
+    root /var/www/html;
+    index index.html;
+
+    server_name _;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location /chat/ {
+        root /var/www/html;
+        index index.html;
+        try_files \$uri /chat/index.html;
+    }
+
+    location /static/ {
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    error_page 404 /index.html;
+}
+EOF
+
+# 12. Restart Nginx
+systemctl restart nginx
