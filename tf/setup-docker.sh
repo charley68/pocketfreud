@@ -13,7 +13,7 @@ apt-get install -y docker.io docker-compose git curl nginx nodejs npm
 systemctl enable docker
 systemctl start docker
 
-# 4. Install PM2 globally for Node
+# 4. Install PM2 globally
 npm install -g pm2
 
 # 5. Install Ollama
@@ -26,12 +26,12 @@ git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
 # 7. Set up server (Node proxy)
 cd /opt/pocketfreud/server
-npm install
+npm install --legacy-peer-deps
 pm2 start server.js --name pocketfreud-api
 
 # 8. Build React chat app
 cd /opt/pocketfreud/client
-npm install
+npm install --legacy-peer-deps
 npm run build
 
 # 9. Deploy landing page to /
@@ -45,8 +45,6 @@ cp -r build/* /var/www/html/chat/
 
 # 11. Fix Nginx config
 cat <<EOF > /etc/nginx/sites-available/default
-
-
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -58,15 +56,14 @@ server {
     location /api/ {
        proxy_pass http://localhost:3000/;
        proxy_http_version 1.1;
-       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Upgrade \$http_upgrade;
        proxy_set_header Connection "upgrade";
-       proxy_set_header Host $host;
-       proxy_cache_bypass $http_upgrade;
+       proxy_set_header Host \$host;
+       proxy_cache_bypass \$http_upgrade;
     }
 
-
     location / {
-        try_files $uri /index.html;
+        try_files \$uri /index.html;
     }
 
     location /static/ {
@@ -78,5 +75,6 @@ server {
 }
 EOF
 
-# 12. Restart Nginx
+# 12. Restart Nginx to apply changes
 systemctl restart nginx
+
