@@ -1,46 +1,50 @@
+
 #!/bin/bash
 
-# Log all output to user-data.log
-exec > /var/log/user-data.log 2>&1
+# Log output
+exec > /var/log/setup-docker.log 2>&1
+set -e
 
-# Update and install dependencies
+echo "==> Updating system and installing dependencies..."
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y docker.io docker-compose git curl nginx nodejs npm
 
-# Enable Docker and Nginx on boot
-systemctl enable docker
-systemctl enable nginx
+echo "==> Enabling Docker to start on boot..."
 systemctl start docker
-systemctl start nginx
+systemctl enable docker
 
-# Add ubuntu to docker group so we can run without sudo
-usermod -aG docker ubuntu
-
-# Install PM2 globally (for Node backend if needed)
+echo "==> Installing PM2 globally..."
 npm install -g pm2
 
-# Clone your GitHub repo (adjust if private or different)
-cd /opt
-git clone https://github.com/charley68/pocketfreud.git
-cd pocketfreud
-
-# Start Ollama container and run mistral
-docker run -d --name ollama -p 11434:11434 ollama/ollama
+echo "==> Installing Ollama..."
+curl -fsSL https://ollama.com/install.sh | sh
 sleep 10
-docker exec ollama ollama run mistral &
+ollama run mistral &
 
-# Backend setup
-cd server
+echo "==> Cloning PocketFreud repository..."
+git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
+
+echo "==> Setting up backend..."
+cd /opt/pocketfreud/server
 npm install
 pm2 start server.js --name pocketfreud-api
-cd ..
 
-# Frontend build
-cd client
+echo "==> Building frontend..."
+cd /opt/pocketfreud/client
 npm install
 npm run build
 
-# Deploy frontend with Nginx
-cp -r build/* /var/www/html/
+echo "==> Deploying landing page..."
+cp public/index.html /var/www/html/index.html
+cp public/logo.png /var/www/html/logo.png
+cp public/background.jpg /var/www/html/background.jpg
+
+echo "==> Deploying React app to /chat..."
+mkdir -p /var/www/html/chat
+cp -r build/* /var/www/html/chat/
+
+echo "==> Restarting Nginx..."
 systemctl restart nginx
+
+echo "==> Setup complete!"
