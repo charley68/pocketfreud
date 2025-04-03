@@ -45,23 +45,27 @@ cp -r build/* /var/www/html/chat/
 
 # 11. Fix Nginx config
 cat <<EOF > /etc/nginx/sites-available/default
+
+
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
     root /var/www/html;
     index index.html;
-
     server_name _;
 
-    location / {
-        try_files \$uri \$uri/ /index.html;
+    location /api/ {
+        proxy_pass http://localhost:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection upgrade;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 
-    location /chat/ {
-        root /var/www/html;
-        index index.html;
-        try_files \$uri /chat/index.html;
+    location / {
+        try_files $uri /index.html;
     }
 
     location /static/ {
@@ -71,6 +75,7 @@ server {
 
     error_page 404 /index.html;
 }
+
 EOF
 
 # 12. Restart Nginx
