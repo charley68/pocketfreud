@@ -1,53 +1,56 @@
 #!/bin/bash
 
+# Log all output to a file
 exec > /var/log/user-data.log 2>&1
 
-# 1. System update
+# 1. Update system
 apt-get update -y
 apt-get upgrade -y
 
 # 2. Install dependencies
-apt-get install -y docker.io docker-compose git curl nginx nodejs npm
+apt-get install -y docker.io docker-compose git curl nginx npm build-essential
 
-# 3. Enable Docker
+# 3. Enable Docker on boot
 systemctl enable docker
 systemctl start docker
 
-# 4. Install PM2
+# 4. Install Node version manager (n) and use Node 18+
+npm install -g n
+n 18
+export PATH="/usr/local/bin:$PATH"
+hash -r
+
+# 5. Install PM2 with correct Node
 npm install -g pm2
 
-# 5. Install Ollama and run model
+# 6. Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 sleep 10
 ollama run mistral &
 
-# 6. Clone your repo
+# 7. Clone repo
 git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
-# 7. Set up backend (Node.js server)
+# 8. Start backend
 cd /opt/pocketfreud/server
 npm install
 pm2 start server.js --name pocketfreud-api
 
-# 8. Build React frontend
+# 9. Build frontend
 cd /opt/pocketfreud/client
-
-# Ensure correct homepage in package.json before build (just to be safe)
-sed -i '/"name":/a \ \ "homepage": "/chat",' package.json
-
 npm install
-CI=false npm run build
+npm run build
 
-# 9. Deploy landing page to /
+# 10. Copy landing page to root
 cp /opt/pocketfreud/index.html /var/www/html/index.html
 cp /opt/pocketfreud/logo.png /var/www/html/logo.png
 cp /opt/pocketfreud/background.jpg /var/www/html/background.jpg
 
-# 10. Deploy React build to /chat
+# 11. Deploy chat frontend
 mkdir -p /var/www/html/chat
 cp -r build/* /var/www/html/chat/
 
-# 11. Nginx config
+# 12. Nginx config
 cat <<EOF > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
@@ -57,7 +60,6 @@ server {
     index index.html;
     server_name _;
 
-    # Proxy for API
     location /api/ {
        proxy_pass http://localhost:3000/;
        proxy_http_version 1.1;
@@ -67,13 +69,6 @@ server {
        proxy_cache_bypass \$http_upgrade;
     }
 
-    # Static React app in /chat
-    location /chat/ {
-        root /var/www/html;
-        try_files \$uri /chat/index.html;
-    }
-
-    # Root landing page
     location / {
         try_files \$uri /index.html;
     }
@@ -87,6 +82,6 @@ server {
 }
 EOF
 
-# 12. Restart Nginx
+# 13. Restart Nginx
 systemctl restart nginx
 
