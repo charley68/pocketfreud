@@ -1,56 +1,55 @@
 #!/bin/bash
 
-# Log all output to a file
+# Log everything
 exec > /var/log/user-data.log 2>&1
 
 # 1. Update system
 apt-get update -y
 apt-get upgrade -y
 
-# 2. Install dependencies
-apt-get install -y docker.io docker-compose git curl nginx npm build-essential
+# 2. Install basic dependencies
+apt-get install -y docker.io docker-compose git curl nginx python3-pip
 
-# 3. Enable Docker on boot
+# 3. Enable Docker
 systemctl enable docker
 systemctl start docker
 
-# 4. Install Node version manager (n) and use Node 18+
+# 4. Install Node version manager and Node 18 for building frontend (optional)
 npm install -g n
 n 18
 export PATH="/usr/local/bin:$PATH"
 hash -r
 
-# 5. Install PM2 with correct Node
-npm install -g pm2
-
-# 6. Install Ollama
+# 5. Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 sleep 10
 ollama run mistral &
 
-# 7. Clone repo
+# 6. Clone your Git repo
 git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
-# 8. Start backend
-cd /opt/pocketfreud/server
-npm install
-pm2 start server.js --name pocketfreud-api
+# 7. Set up Flask backend
+cd /opt/pocketfreud/backend
+pip3 install -r requirements.txt
 
-# 9. Build frontend
+# Start Flask backend with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app --daemon
+
+# 8. Build React frontend (or use plain HTML/JS later if you prefer)
 cd /opt/pocketfreud/client
 npm install
 npm run build
 
-# 10. Copy landing page to root
+# 9. Deploy static landing page
 cp /opt/pocketfreud/index.html /var/www/html/index.html
 cp /opt/pocketfreud/logo.png /var/www/html/logo.png
 cp /opt/pocketfreud/background.jpg /var/www/html/background.jpg
 
-# 11. Deploy chat frontend
+# 10. Deploy frontend app to /chat
 mkdir -p /var/www/html/chat
 cp -r build/* /var/www/html/chat/
 
-# 12. Nginx config
+# 11. Configure Nginx
 cat <<EOF > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
@@ -61,12 +60,12 @@ server {
     server_name _;
 
     location /api/ {
-       proxy_pass http://localhost:3000/;
-       proxy_http_version 1.1;
-       proxy_set_header Upgrade \$http_upgrade;
-       proxy_set_header Connection "upgrade";
-       proxy_set_header Host \$host;
-       proxy_cache_bypass \$http_upgrade;
+        proxy_pass http://localhost:5000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
     }
 
     location / {
@@ -82,6 +81,6 @@ server {
 }
 EOF
 
-# 13. Restart Nginx
+# 12. Restart Nginx
 systemctl restart nginx
 
