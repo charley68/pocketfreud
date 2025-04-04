@@ -68,6 +68,12 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 
+    location /chat/ {
+        root /var/www/html;
+        index index.html;
+        try_files $uri /chat/index.html;
+    }
+
     location / {
         try_files \$uri /index.html;
     }
