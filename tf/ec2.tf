@@ -9,6 +9,10 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
   key_name      = var.key_pair_name
+  root_block_device {
+    volume_size = 30             # <-- THIS ensures 30 GB disk size
+    volume_type = "gp2"          # General Purpose SSD
+  }
 
   user_data = file("setup.sh")
 
