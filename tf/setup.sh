@@ -16,6 +16,8 @@ sleep 10
 systemctl enable ollama
 systemctl start ollama
 
+ollama pull mistral
+
 echo "==== Clone Project Repo ===="
 git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
