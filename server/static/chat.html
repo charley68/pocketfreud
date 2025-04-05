@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PocketFreud Chat</title>
+  <style>
+    body {
+      background: url('background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    #chatBox {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      margin: 20px auto;
+      width: 80%;
+      height: 400px;
+      overflow-y: scroll;
+      border-radius: 8px;
+    }
+    #userInput {
+      width: 60%;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>PocketFreud Chat</h1>
+<div id="chatBox"></div>
+
+<br>
+<input type="text" id="userInput" placeholder="Type your message...">
+<button onclick="sendMessage()">Send</button>
+
+<script>
+async function sendMessage() {
+    const userInput = document.getElementById('userInput').value;
+    if (!userInput) return;
+
+    const chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+
+    const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] })
+    });
+
+    const data = await response.json();
+    if (data.response) {
+        chatBox.innerHTML += `<div><strong>PocketFreud:</strong> ${data.response}</div>`;
+    } else {
+        chatBox.innerHTML += `<div><strong>Error:</strong> Could not get response</div>`;
+    }
+
+    document.getElementById('userInput').value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+
+</body>
+</html>
+a
