@@ -19,6 +19,14 @@ systemctl start ollama
 # 4. Clone your repo
 git clone https://github.com/charley68/pocketfreud.git /opt/pocketfreud
 
+# 4.5. Copy static assets
+mkdir -p /var/www/html
+cp /opt/pocketfreud/index.html /var/www/html/index.html
+cp /opt/pocketfreud/chat.html /var/www/html/chat.html
+cp /opt/pocketfreud/logo.png /var/www/html/logo.png
+cp /opt/pocketfreud/background.jpg /var/www/html/background.jpg
+
+
 # 5. Setup Python virtual environment and install dependencies
 cd /opt/pocketfreud/server
 python3 -m venv venv
@@ -37,29 +45,29 @@ server {
 
     server_name _;
 
+    root /var/www/html;
+    index index.html;
+
     location / {
-        root /opt/pocketfreud/server/static;
-        index index.html;
-        try_files \$uri /index.html;
+        try_files $uri /index.html;
     }
 
     location /chat {
-        root /opt/pocketfreud/server/static;
-        index chat.html;
-        try_files \$uri /chat.html;
+        try_files $uri /chat.html;
     }
 
     location /api/ {
         proxy_pass http://localhost:5000/;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
     }
 
     error_page 404 /index.html;
 }
+
 EOF
 
 # 8. Restart Nginx
