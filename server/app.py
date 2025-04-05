@@ -3,33 +3,31 @@ import requests
 
 app = Flask(__name__, static_folder='static')
 
-# Serve the landing page
 @app.route('/')
 def serve_landing():
     return send_from_directory('static', 'index.html')
 
-# Serve the chat page
 @app.route('/chat')
 def serve_chat():
     return send_from_directory('static', 'chat.html')
 
-# API endpoint to chat
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
-    messages = data.get('messages', [])
+    user_message = data.get('messages', [])[0]['content']
 
     try:
         response = requests.post(
-            "http://localhost:11434/api/chat",
+            "http://localhost:11434/api/generate",
             json={
                 "model": "mistral",
-                "messages": messages,
+                "prompt": user_message,
+                "stream": False
             }
         )
         response.raise_for_status()
         result = response.json()
-        ai_message = result["message"]["content"]
+        ai_message = result.get("response", "Sorry, no response.")
         return jsonify({"response": ai_message})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
