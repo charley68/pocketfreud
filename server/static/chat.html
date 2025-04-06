@@ -45,22 +45,32 @@ async function sendMessage() {
     const chatBox = document.getElementById('chatBox');
     chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
 
-    const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] })
-    });
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] })
+        });
 
-    const data = await response.json();
-    if (data.response) {
-        chatBox.innerHTML += `<div><strong>PocketFreud:</strong> ${data.response}</div>`;
-    } else {
-        chatBox.innerHTML += `<div><strong>Error:</strong> Could not get response</div>`;
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.response) {
+            chatBox.innerHTML += `<div><strong>PocketFreud:</strong> ${data.response}</div>`;
+        } else {
+            chatBox.innerHTML += `<div><strong>Error:</strong> No response received</div>`;
+        }
+    } catch (error) {
+        console.error(error);
+        chatBox.innerHTML += `<div><strong>Error:</strong> ${error.message}</div>`;
     }
 
     document.getElementById('userInput').value = '';
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
 </script>
 
 </body>
