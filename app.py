@@ -13,6 +13,7 @@ def serve_landing():
 
 @app.route('/chat')
 def serve_chat():
+    print("Serving CHAT PAGE")
     return app.send_static_file('chat.html')
 
 
