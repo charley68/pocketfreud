@@ -6,16 +6,6 @@ USE_OLLAMA = os.getenv('USE_OLLAMA', 'false').lower() == 'true'
 openai_api_key = os.getenv("OPENAI_API_KEY")
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
-@app.route('/')
-def serve_landing():
-    return app.send_static_file('index.html')
-
-
-@app.route('/chat')
-def serve_chat():
-    print("Serving CHAT PAGE")
-    return app.send_static_file('chat.html')
-
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
