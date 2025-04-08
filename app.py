@@ -100,10 +100,6 @@ def signin():
     return render_template('signin.html')
 
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
 
 @app.route('/chat.html')
 def serve_chat():
