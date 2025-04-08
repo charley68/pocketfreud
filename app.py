@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, render_template, session
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, render_template, session, flash
 import sqlite3
 import os
 import requests
@@ -48,24 +48,33 @@ def init_db():
 def serve_landing():
     return send_from_directory('static', 'index.html')
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out.')
+    return redirect(url_for('home'))
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        name = request.form['name']
+        username = request.form['username']
         email = request.form['email']
         password = request.form['password']
 
-        conn = get_db_connection()
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
         try:
-            conn.execute('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', (name, email, password))
+            cursor.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, password))
             conn.commit()
+            flash('Account created successfully! Please log in.')
         except sqlite3.IntegrityError:
-            return 'Email already registered!', 400
+            flash('Email already exists. Please use a different email.')
         finally:
             conn.close()
-
         return redirect(url_for('signin'))
-    return send_from_directory('static', 'signup.html')
+    return render_template('signup.html')
+
+
 
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
@@ -73,17 +82,22 @@ def signin():
         email = request.form['email']
         password = request.form['password']
 
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE email = ? AND password = ?', (email, password)).fetchone()
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, username FROM users WHERE email = ? AND password = ?', (email, password))
+        user = cursor.fetchone()
         conn.close()
 
         if user:
-            session['user_id'] = user['id']
-            session['name'] = user['name']
-            return redirect('/chat.html')
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            flash('Login successful!')
+            return redirect(url_for('home'))
         else:
-            return 'Incorrect credentials!', 401
-    return send_from_directory('static', 'signin.html')
+            flash('Invalid credentials. Please try again.')
+            return redirect(url_for('signin'))
+    return render_template('signin.html')
+
 
 @app.route('/logout')
 def logout():

@@ -49,6 +49,16 @@
 </head>
 <body>
 
+    {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
 <div class="signup-container">
   <h2>Create Account</h2>
   <form action="/signup" method="post">

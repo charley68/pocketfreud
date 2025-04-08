@@ -26,29 +26,23 @@
       padding: 1rem 2rem;
       gap: 1rem;
     }
-    nav a {
+    nav a, nav button {
       color: #ffffff;
       text-decoration: none;
       font-weight: 500;
       font-size: 1rem;
-      transition: opacity 0.3s;
-    }
-    nav a:hover {
-      opacity: 0.7;
-    }
-    .nav-button {
       background-color: #7BAFD4;
-      color: #ffffff;
-      font-weight: 600;
-      border: none;
       padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
+      border-radius: 8px;
       transition: background-color 0.3s;
     }
-    .nav-button:hover {
+    nav a:hover, nav button:hover {
       background-color: #6aa3c7;
+    }
+    nav span {
+      font-weight: bold;
+      margin-right: 1rem;
+      font-size: 1.1rem;
     }
     .header-bar {
       display: flex;
@@ -62,7 +56,7 @@
     }
     .main-title {
       text-align: center;
-      margin-top: 0rem;
+      margin-top: 0;
     }
     .main-title h1 {
       font-size: 2.8rem;
@@ -124,39 +118,6 @@
       align-self: flex-end;
       flex-direction: row-reverse;
     }
-    .chat-bubble::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      width: 0;
-      height: 0;
-    }
-    .chat-bubble.bot::after {
-      left: -10px;
-      border: 10px solid transparent;
-      border-right-color: #6a5acd;
-      border-left: 0;
-      margin-top: -5px;
-    }
-    .chat-bubble.user::after {
-      right: -10px;
-      border: 10px solid transparent;
-      border-left-color: #7BAFD4;
-      border-right: 0;
-      margin-top: -5px;
-    }
-    .chat-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.9rem;
-      color: #333;
-      font-weight: bold;
-    }
     footer {
       margin-top: auto;
       font-size: 0.9rem;
@@ -169,49 +130,49 @@
 
 <body>
 
-<div class="header-bar">
-  <img src="logo.png" alt="PocketFreud Logo" class="logo" />
-  <nav>
-    <a href="#">Home</a>
-    <a href="#">Features</a>
-    <a href="#">About</a>
-    <a href="#">Contact</a>
-    <button class="nav-button" onclick="window.location.href='/signin.html'">Sign In</button>
-    <button class="nav-button" onclick="window.location.href='/signup.html'">Sign Up</button>
-  </nav>
-</div>
-
-<main style="display: flex; flex-direction: column; align-items: center; padding: 0rem;">
-  <div class="main-title">
-    <h1>PocketFreud</h1>
-    <h2>Talking Helps</h2>
+  <div class="header-bar">
+    <img src="logo.png" alt="PocketFreud Logo" class="logo" />
+    <nav>
+      {% if 'username' in session %}
+        <span>Hello, {{ session['username'] }}!</span>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a href="{{ url_for('signin') }}">Sign In</a>
+        <a href="{{ url_for('signup') }}">Sign Up</a>
+      {% endif %}
+    </nav>
   </div>
 
-  <p class="description">
-    PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.
-  </p>
-
-  <div class="chat-container">
-    <div class="chat-example">
-      <div class="chat-bubble bot"><div class="chat-icon">🧠</div>Hi John, how are you feeling today?</div>
-      <div class="chat-bubble user"><div class="chat-icon">👤</div>Not doing so well today.</div>
-      <div class="chat-bubble bot"><div class="chat-icon">🧠</div>I'm sorry to hear that. If you'd like to talk about what's bothering you, I'm here to listen and provide some support.</div>
+  <main style="display: flex; flex-direction: column; align-items: center; padding: 0rem;">
+    <div class="main-title">
+      <h1>Pocket Freud</h1>
+      <h2>Talking Helps</h2>
     </div>
-    <div class="chat-example">
-      <div class="chat-bubble user"><div class="chat-icon">👤</div>Hey, I'm feeling lonely, upset. I didn't get that job I went for.</div>
-      <div class="chat-bubble bot"><div class="chat-icon">🧠</div>I'm sorry to hear this, Sally. Want to tell me more about the interview? We can work on improvements together and review your CV and soft skills.</div>
-    </div>
-    <div class="chat-example">
-      <div class="chat-bubble bot"><div class="chat-icon">🧠</div>Hey Paul, I'm checking in as agreed. How did you get on with those tasks we set yesterday?</div>
-      <div class="chat-bubble user"><div class="chat-icon">👤</div>Ah, I lost my mojo and didn't manage to complete any of them. 😔</div>
-      <div class="chat-bubble bot"><div class="chat-icon">🧠</div>That's okay Paul. Don't be hard on yourself. Let's break it down into smaller chunks and go step by step.</div>
-    </div>
-  </div>
-</main>
 
-<footer>
-  &copy; 2025 PocketFreud. All rights reserved.
-</footer>
+    <p class="description">
+      PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.
+    </p>
 
+    <div class="chat-container">
+      <div class="chat-example">
+        <div class="chat-bubble bot">🧠 Hi John, how are you feeling today?</div>
+        <div class="chat-bubble user">👤 Not doing so well today.</div>
+        <div class="chat-bubble bot">🧠 I'm sorry to hear that. If you'd like to talk about what's bothering you, I'm here to listen.</div>
+      </div>
+      <div class="chat-example">
+        <div class="chat-bubble user">👤 Feeling lonely. Didn't get the job I interviewed for.</div>
+        <div class="chat-bubble bot">🧠 I'm sorry, Sally. Want to talk more about it? We can work together to improve your CV or interview skills!</div>
+      </div>
+      <div class="chat-example">
+        <div class="chat-bubble bot">🧠 Hey Paul, how did your tasks from yesterday go?</div>
+        <div class="chat-bubble user">👤 I lost motivation and didn't complete them 😔</div>
+        <div class="chat-bubble bot">🧠 That's okay! Let's break them down into smaller steps together 💬</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 PocketFreud. All rights reserved.
+  </footer>
 </body>
 </html>
