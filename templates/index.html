@@ -11,7 +11,7 @@
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: url('background.jpg') no-repeat center center fixed;
+      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
       background-size: cover;
       color: #ffffff;
       min-height: 100vh;
@@ -131,7 +131,8 @@
 <body>
 
   <div class="header-bar">
-    <img src="logo.png" alt="PocketFreud Logo" class="logo" />
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+
     <nav>
       {% if 'username' in session %}
         <span>Hello, {{ session['username'] }}!</span>
