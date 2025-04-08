@@ -44,9 +44,10 @@ def init_db():
 
 # -------------------- Routes --------------------
 
+# Home route
 @app.route('/')
-def serve_landing():
-    return send_from_directory('static', 'index.html')
+def home():
+    return render_template('index.html')
 
 @app.route('/logout')
 def logout():
