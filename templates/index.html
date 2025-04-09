@@ -162,22 +162,28 @@
       PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.
     </p>
 
-    <div class="chat-container">
-      <div class="chat-example">
-        <div class="chat-bubble bot">🧠 Hi John, how are you feeling today?</div>
-        <div class="chat-bubble user">👤 Not doing so well today.</div>
-        <div class="chat-bubble bot">🧠 I'm sorry to hear that. If you'd like to talk about what's bothering you, I'm here to listen.</div>
+    {% if 'user_id' in session %}
+      <!-- If logged in, embed the real chat box -->
+      <iframe src="/chat.html" style="width:90%; height:600px; border:none; border-radius:12px; margin: 2rem auto; display:block;"></iframe>
+    {% else %}
+
+      <div class="chat-container">
+        <div class="chat-example">
+          <div class="chat-bubble bot">🧠 Hi John, how are you feeling today?</div>
+          <div class="chat-bubble user">👤 Not doing so well today.</div>
+          <div class="chat-bubble bot">🧠 I'm sorry to hear that. If you'd like to talk about what's bothering you, I'm here to listen.</div>
+        </div>
+        <div class="chat-example">
+          <div class="chat-bubble user">👤 Feeling lonely. Didn't get the job I interviewed for.</div>
+          <div class="chat-bubble bot">🧠 I'm sorry, Sally. Want to talk more about it? We can work together to improve your CV or interview skills!</div>
+        </div>
+        <div class="chat-example">
+          <div class="chat-bubble bot">🧠 Hey Paul, how did your tasks from yesterday go?</div>
+          <div class="chat-bubble user">👤 I lost motivation and didn't complete them 😔</div>
+          <div class="chat-bubble bot">🧠 That's okay! Let's break them down into smaller steps together 💬</div>
+        </div>
       </div>
-      <div class="chat-example">
-        <div class="chat-bubble user">👤 Feeling lonely. Didn't get the job I interviewed for.</div>
-        <div class="chat-bubble bot">🧠 I'm sorry, Sally. Want to talk more about it? We can work together to improve your CV or interview skills!</div>
-      </div>
-      <div class="chat-example">
-        <div class="chat-bubble bot">🧠 Hey Paul, how did your tasks from yesterday go?</div>
-        <div class="chat-bubble user">👤 I lost motivation and didn't complete them 😔</div>
-        <div class="chat-bubble bot">🧠 That's okay! Let's break them down into smaller steps together 💬</div>
-      </div>
-    </div>
+    {% endif %}
   </main>
 
   <footer>
