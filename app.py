@@ -6,7 +6,7 @@ import requests
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
 
-DATABASE = '/opt/pocketfreud/server/database.db'
+DATABASE = '/opt/pocketfreud/database.db'
 
 # Environment-based model selector
 USE_OLLAMA = os.getenv('USE_OLLAMA', 'false').lower() == 'true'
