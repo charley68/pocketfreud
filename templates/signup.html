@@ -16,6 +16,19 @@
       margin: 0;
       color: #ffffff;
     }
+
+    .flash-messages {
+      margin-bottom: 1rem;
+    }
+
+    .flash {
+      background-color: #ff4d4d;
+      padding: 0.7rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: white;
+    }
+
     .signup-container {
       background: rgba(0, 0, 0, 0.6);
       padding: 2rem;
@@ -49,18 +62,21 @@
 </head>
 <body>
 
-    {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul>
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+
 
 <div class="signup-container">
   <h2>Create Account</h2>
+
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for message in messages %}
+        <div class="flash">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% endwith %}
+
   <form action="/signup" method="post">
     <input type="text" name="username" placeholder="Your Name" required><br>
     <input type="email" name="email" placeholder="Email Address" required><br>
