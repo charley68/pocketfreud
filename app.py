@@ -62,7 +62,7 @@ def signup():
         email = request.form['email']
         password = request.form['password']
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()  # ✅ use helper!
         cursor = conn.cursor()
         try:
             cursor.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, password))
@@ -83,7 +83,7 @@ def signin():
         email = request.form['email']
         password = request.form['password']
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()  # ✅ use helper!
         cursor = conn.cursor()
         cursor.execute('SELECT id, username FROM users WHERE email = ? AND password = ?', (email, password))
         user = cursor.fetchone()

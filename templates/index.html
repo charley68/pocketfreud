@@ -141,10 +141,10 @@
     <nav>
       {% if 'username' in session %}
         <span>Hello, {{ session['username'] }}!</span>
-        <a href="{{ url_for('logout') }}">Logout</a>
+        <a class="nav-button" href="{{ url_for('logout') }}">Logout</a>
       {% else %}
-        <a href="{{ url_for('signin') }}">Sign In</a>
-        <a href="{{ url_for('signup') }}">Sign Up</a>
+        <a class="nav-button" href="{{ url_for('signin') }}">Sign In</a>
+        <a class="nav-button" href="{{ url_for('signup') }}">Sign Up</a>
       {% endif %}
     </nav>
   </div>
