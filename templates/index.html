@@ -56,9 +56,12 @@
       width: 100%;
       padding: 1rem 2rem;
     }
+    
     .logo {
-      max-width: 60px;
+      max-width: 60px;    /* Make it smaller */
+      height: auto;       /* Maintain aspect ratio */
     }
+
     .main-title {
       text-align: center;
       margin-top: 0;
@@ -136,7 +139,7 @@
 <body>
 
   <div class="header-bar">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
 
     <nav>
       {% if 'username' in session %}
