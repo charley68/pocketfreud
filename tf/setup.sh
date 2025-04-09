@@ -52,6 +52,9 @@ server {
 }
 EOF
 
+sudo chown -R ubuntu:ubuntu /opt/pocketfreud
+sudo chown -R ubuntu:ubuntu /var/www/html
+
 # Restart Nginx
 systemctl restart nginx
 

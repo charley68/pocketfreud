@@ -30,12 +30,17 @@
 </head>
 <body>
 
-<h1>PocketFreud Chat</h1>
-<div id="chatBox"></div>
+  <h1>PocketFreud Chat</h1>
 
-<br>
-<input type="text" id="userInput" placeholder="Hi Steve.  How are you doing today ?">
-<button onclick="sendMessage()">Send</button>
+  <div id="welcomeMessage" style="margin-top: 10px; font-size: 1.2rem; font-weight: bold;">
+    👋 Welcome back, {{ username }}!
+  </div>
+  
+  <div id="chatBox"></div>
+  
+  <br>
+  <input type="text" id="userInput" placeholder="Hi {{ username }}. How are you doing today?">
+  <button onclick="sendMessage()">Send</button>
 
 <script>
 async function sendMessage() {

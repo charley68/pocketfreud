@@ -40,6 +40,14 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
+
+        user_count = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+        if user_count == 0:
+            conn.execute('''
+                INSERT INTO users (name, email, password)
+                VALUES (?, ?, ?)
+            ''', ('Steve', 'sclane68@yahoo.co.uk', 'Twins2018!'))
+
     conn.close()
 
 # -------------------- Routes --------------------
@@ -105,7 +113,7 @@ def signin():
 def serve_chat():
     if 'user_id' not in session:
         return redirect('/signin')
-    return send_from_directory('static', 'chat.html')
+     return render_template('chat.html', username=session.get('username'))
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
