@@ -72,6 +72,28 @@
     transform: translateY(0);
   }
 }
+
+    .user-message {
+      background-color: #7BAFD4; /* Light blue for user */
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      margin-bottom: 0.5rem;
+      text-align: right;
+      display: inline-block;
+      max-width: 80%;
+    }
+
+    .bot-message {
+      background-color: #6a5acd; /* Purple for PocketFreud */
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      margin-bottom: 0.5rem;
+      text-align: left;
+      display: inline-block;
+      max-width: 80%;
+    }
   </style>
 </head>
 <body>
@@ -82,11 +104,24 @@
     👋 Welcome back, {{ username }}!
   </div>
   
-  <div id="chatBox"></div>
+  <div id="chatBox">
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="{{ 'user-message' if msg['sender'] == 'user' else 'bot-message' }}">
+          <strong>{{ 'You' if msg['sender'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="bot-message">
+        <strong>PocketFreud:</strong> Hi {{ username }}. How are you feeling today?
+      </div>
+    {% endif %}
+  </div>
+  
   
   <br>
   <div id="inputArea">
-    <input type="text" id="userInput" placeholder="Hi {{ username }}. How are you doing today?">
+    <input type="text" id="userInput" placeholder="Whats on your mind {{ username }}?">
     <button onclick="sendMessage()">Send</button>
   </div>
 
@@ -129,6 +164,16 @@ async function sendMessage() {
         top: chatBox.scrollHeight,
         behavior: 'smooth'
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('userInput');
+    input.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // prevent form submission if inside <form>
+            sendMessage();
+        }
+    });
+});
 }
 
 </script>

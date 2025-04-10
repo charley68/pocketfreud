@@ -63,6 +63,7 @@ resource "aws_instance" "app_server" {
     }
     NGINXCONF
 
+    sudo chown -R ubuntu:ubuntu /opt/pocketfreud
     systemctl restart nginx
     echo "=== PocketFreud Setup Complete ==="
 EOF

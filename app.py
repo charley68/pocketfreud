@@ -108,12 +108,25 @@ def signin():
     return render_template('signin.html')
 
 
-
 @app.route('/chat.html')
 def serve_chat():
     if 'user_id' not in session:
         return redirect('/signin')
-    return render_template('chat.html', username=session.get('username'))
+
+    conn = get_db_connection()
+    messages = conn.execute(
+        '''
+        SELECT sender, message FROM conversations 
+        WHERE user_id = ? 
+        ORDER BY timestamp ASC
+        LIMIT 20
+        ''',
+        (session['user_id'],)
+    ).fetchall()
+    conn.close()
+
+    return render_template('chat.html', messages=messages, username=session['username'])
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -127,18 +140,52 @@ def chat():
 
     user_prompt = messages[-1]['content']
 
+    # ✨ Prepare the conversation history
+    conv_history = []
+
+    # Always start with system prompt
+    conv_history.append({
+        "role": "system",
+        "content": "You are PocketFreud, a gentle, empathetic AI who helps users reflect on their emotions and feel supported. You speak in a calming, non-judgmental tone."
+    })
+
+    # Fetch last 20 conversation pairs from DB (if any)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT sender, message FROM conversations 
+        WHERE user_id = ? 
+        ORDER BY timestamp ASC
+        LIMIT 20
+    ''', (session['user_id'],))
+    past_conversations = cursor.fetchall()
+    conn.close()
+
+    for conv in past_conversations:
+        conv_history.append({
+            "role": "user" if conv["sender"] == "user" else "assistant",
+            "content": conv["message"]
+        })
+
+    # Add the latest user message
+    conv_history.append({
+        "role": "user",
+        "content": user_prompt
+    })
+
     try:
         if USE_OLLAMA:
             response = requests.post(
                 "http://localhost:11434/api/generate",
                 json={
                     "model": "mistral",
-                    "prompt": user_prompt
+                    "prompt": user_prompt  # (Ollama doesn't handle conversation history yet the same way)
                 }
             )
             response.raise_for_status()
             result = response.json()
             ai_message = result["response"]
+
         else:
             response = requests.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -148,26 +195,26 @@ def chat():
                 },
                 json={
                     "model": "gpt-3.5-turbo",
-                    "messages": [{"role": "user", "content": user_prompt}]
+                    "messages": conv_history
                 }
             )
             response.raise_for_status()
             result = response.json()
             ai_message = result["choices"][0]["message"]["content"]
 
-        # Save conversation to DB
+        # Save to conversation DB
         conn = get_db_connection()
-        conn.execute('INSERT INTO conversations (user_id, message, sender) VALUES (?, ?, ?)',
-                     (session['user_id'], user_prompt, 'user'))
-        conn.execute('INSERT INTO conversations (user_id, message, sender) VALUES (?, ?, ?)',
-                     (session['user_id'], ai_message, 'bot'))
-        conn.commit()
-        conn.close()
+        with conn:
+            conn.execute('INSERT INTO conversations (user_id, message, sender) VALUES (?, ?, ?)',
+                         (session['user_id'], user_prompt, 'user'))
+            conn.execute('INSERT INTO conversations (user_id, message, sender) VALUES (?, ?, ?)',
+                         (session['user_id'], ai_message, 'bot'))
 
         return jsonify({"response": ai_message})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 init_db()
