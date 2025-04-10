@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PocketFreud Chat</title>
+  <title>Let's Talk</title>
   <style>
     body {
       background: url('background.jpg') no-repeat center center fixed;
@@ -11,26 +11,72 @@
       color: white;
       text-align: center;
       padding: 20px;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     #chatBox {
+      width: 80%;
+      max-width: 600px;
+      height: 400px;
+      overflow-y: auto;
       background: rgba(0, 0, 0, 0.5);
       padding: 10px;
-      margin: 20px auto;
-      width: 80%;
-      height: 400px;
-      overflow-y: scroll;
       border-radius: 8px;
+      margin: 10px 0;
     }
+    #inputArea {
+      display: flex;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
     #userInput {
       width: 60%;
       padding: 10px;
       border-radius: 8px;
     }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      background-color: #7BAFD4;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #6aa3c7;
+    }
+
+    .message {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.5s forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
   </style>
 </head>
 <body>
 
-  <h1>PocketFreud Chat</h1>
+  <h1>Let's Talk</h1>
 
   <div id="welcomeMessage" style="margin-top: 10px; font-size: 1.2rem; font-weight: bold;">
     👋 Welcome back, {{ username }}!
@@ -39,8 +85,12 @@
   <div id="chatBox"></div>
   
   <br>
-  <input type="text" id="userInput" placeholder="Hi {{ username }}. How are you doing today?">
-  <button onclick="sendMessage()">Send</button>
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Hi {{ username }}. How are you doing today?">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+
 
 <script>
 async function sendMessage() {
@@ -48,7 +98,8 @@ async function sendMessage() {
     if (!userInput) return;
 
     const chatBox = document.getElementById('chatBox');
-    chatBox.innerHTML += `<div><strong>You:</strong> ${userInput}</div>`;
+    chatBox.innerHTML += `<div class="message"><strong>You:</strong> ${userInput}</div>`;
+
 
     try {
         const response = await fetch('/api/chat', {
@@ -63,7 +114,7 @@ async function sendMessage() {
 
         const data = await response.json();
         if (data.response) {
-            chatBox.innerHTML += `<div><strong>PocketFreud:</strong> ${data.response}</div>`;
+            chatBox.innerHTML += `<div class="message"><strong>PocketFreud:</strong> ${data.response}</div>`;
         } else {
             chatBox.innerHTML += `<div><strong>Error:</strong> No response received</div>`;
         }
@@ -73,7 +124,11 @@ async function sendMessage() {
     }
 
     document.getElementById('userInput').value = '';
-    chatBox.scrollTop = chatBox.scrollHeight;
+        // 🔥 NEW: Smooth scroll down
+    chatBox.scrollTo({
+        top: chatBox.scrollHeight,
+        behavior: 'smooth'
+    });
 }
 
 </script>

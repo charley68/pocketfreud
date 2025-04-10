@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Log output
+
 exec > /var/log/user-data.log 2>&1
 
 # Update system
@@ -25,7 +26,7 @@ pip install -r requirements.txt
 # Generate random secret key for Flask
 export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 export USE_OLLAMA=false
-export OPENAI_API_KEY="your-openai-api-key-here"
+export OPENAI_API_KEY=`cat .env`
 
 # Start Flask App with Gunicorn
 gunicorn --workers 1 --bind 0.0.0.0:5000 app:app &

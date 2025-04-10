@@ -44,7 +44,7 @@ def init_db():
         user_count = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
         if user_count == 0:
             conn.execute('''
-                INSERT INTO users (name, email, password)
+                INSERT INTO users (username, email, password)
                 VALUES (?, ?, ?)
             ''', ('Steve', 'sclane68@yahoo.co.uk', 'Twins2018!'))
 
@@ -113,7 +113,7 @@ def signin():
 def serve_chat():
     if 'user_id' not in session:
         return redirect('/signin')
-     return render_template('chat.html', username=session.get('username'))
+    return render_template('chat.html', username=session.get('username'))
 
 @app.route('/api/chat', methods=['POST'])
 def chat():

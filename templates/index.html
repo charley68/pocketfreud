@@ -94,6 +94,7 @@
       gap: 2rem;
       margin: 3rem auto;
       max-width: 1000px;
+      overflow: hidden;  
     }
     .chat-example {
       background: rgba(255, 255, 255, 0.05);
@@ -164,7 +165,10 @@
 
     {% if 'user_id' in session %}
       <!-- If logged in, embed the real chat box -->
-      <iframe src="/chat.html" style="width:90%; height:600px; border:none; border-radius:12px; margin: 2rem auto; display:block;"></iframe>
+      <iframe src="/chat.html" 
+        style="width:90%; height:500px; border:none; border-radius:12px; margin: 2rem auto; display:block; overflow: hidden;" 
+        scrolling="no">
+      </iframe>
     {% else %}
 
       <div class="chat-container">
