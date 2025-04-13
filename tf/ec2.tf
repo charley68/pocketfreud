@@ -3,7 +3,7 @@ resource "aws_instance" "app_server" {
 
   ami           = data.aws_ami.amazon_linux.id
   #instance_type = "t3.medium"
-  instance_type = "t3.small"
+  instance_type = "t3.micro"
 
 
   subnet_id     = aws_subnet.public.id
@@ -15,58 +15,81 @@ resource "aws_instance" "app_server" {
   #   volume_type = "gp2"          # General Purpose SSD
   #}
 
-  user_data = <<-EOF
-    #!/bin/bash
-    exec > /var/log/user-data.log 2>&1
+user_data = <<-EOF
+  #!/bin/bash
+  exec > /var/log/user-data.log 2>&1
 
-    apt-get update -y
-    apt-get upgrade -y
-    apt-get install -y python3 python3-pip python3-venv nginx git curl
+  apt-get update -y
+  apt-get upgrade -y
+  apt-get install -y python3 python3-pip python3-venv nginx git curl
 
-    cd /opt
-    rm -rf pocketfreud
-    git clone https://github.com/charley68/pocketfreud.git
+  cd /opt
+  rm -rf pocketfreud
+  git clone https://github.com/charley68/pocketfreud.git
 
-    cd /opt/pocketfreud
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install --upgrade pip
-    pip install -r requirements.txt
+  cd /opt/pocketfreud
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install --upgrade pip
+  pip install -r requirements.txt
 
-    # Environment variables
-    export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-    export USE_OLLAMA=false
-    export OPENAI_API_KEY="${var.openai_api_key}"
+  # Environment variables
+  export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+  export USE_OLLAMA=false
+  export OPENAI_API_KEY="${var.openai_api_key}"
 
-    # Start Gunicorn (and keep it alive)
-    nohup gunicorn --workers 1 --bind 0.0.0.0:5000 app:app > /var/log/gunicorn.log 2>&1 &
+  # --- Create systemd service for PocketFreud Gunicorn ---
+  cat <<SERVICE > /etc/systemd/system/pocketfreud.service
+  [Unit]
+  Description=Gunicorn to serve PocketFreud Flask App
+  After=network.target
 
-    # Setup Nginx
-    cat <<NGINXCONF >/etc/nginx/sites-available/default
-    server {
-        listen 80 default_server;
-        listen [::]:80 default_server;
-        server_name _;
+  [Service]
+  User=ubuntu
+  Group=www-data
+  WorkingDirectory=/opt/pocketfreud
+  Environment="PATH=/opt/pocketfreud/venv/bin"
+  Environment="FLASK_SECRET_KEY=$FLASK_SECRET_KEY"
+  Environment="USE_OLLAMA=$USE_OLLAMA"
+  Environment="OPENAI_API_KEY=$OPENAI_API_KEY"
+  ExecStart=/opt/pocketfreud/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:app
 
-        location /static/ {
-            root /opt/pocketfreud/;
-        }
+  [Install]
+  WantedBy=multi-user.target
+  SERVICE
 
-        location / {
-            proxy_pass http://127.0.0.1:5000/;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_set_header Host \$host;
-            proxy_cache_bypass \$http_upgrade;
-        }
-    }
-    NGINXCONF
+  systemctl daemon-reload
+  systemctl enable pocketfreud
+  systemctl start pocketfreud
 
-    sudo chown -R ubuntu:ubuntu /opt/pocketfreud
-    systemctl restart nginx
-    echo "=== PocketFreud Setup Complete ==="
+  # --- Setup Nginx ---
+  cat <<NGINXCONF > /etc/nginx/sites-available/default
+  server {
+      listen 80 default_server;
+      listen [::]:80 default_server;
+      server_name _;
+
+      location /static/ {
+          root /opt/pocketfreud/;
+      }
+
+      location / {
+          proxy_pass http://127.0.0.1:5000/;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade \$http_upgrade;
+          proxy_set_header Connection "upgrade";
+          proxy_set_header Host \$host;
+          proxy_cache_bypass \$http_upgrade;
+      }
+  }
+  NGINXCONF
+
+  sudo chown -R ubuntu:ubuntu /opt/pocketfreud
+  systemctl restart nginx
+
+  echo "=== PocketFreud Setup Complete ==="
 EOF
+
 
   tags = {
     Name = "pocketfreud-app-server"
@@ -91,7 +114,13 @@ data "aws_ami" "amazon_linux" {
 }
 
 
-resource "aws_eip" "my_elastic_ip" {
-  instance = aws_instance.app_server
-  vpc      = true
+resource "aws_eip" "persistent_ip" {
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_eip_association" "app_server_ip" {
+  instance_id   = aws_instance.app_server.id
+  allocation_id = aws_eip.persistent_ip.id
 }

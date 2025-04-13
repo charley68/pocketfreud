@@ -26,6 +26,8 @@
       padding: 10px;
       border-radius: 8px;
       margin: 10px 0;
+      display: flex;               /* Added */
+      flex-direction: column;      /* Added */
     }
     #inputArea {
       display: flex;
@@ -74,18 +76,18 @@
     }
 
     .user-message {
-      background-color: #7BAFD4; /* Light blue for user */
+      background-color: #7BAFD4;
       color: #fff;
       padding: 0.5rem 1rem;
       border-radius: 1rem;
       margin-bottom: 0.5rem;
-      text-align: right;
+      text-align: left;
       display: inline-block;
       max-width: 80%;
     }
 
     .bot-message {
-      background-color: #6a5acd; /* Purple for PocketFreud */
+      background-color: #6a5acd;
       color: #fff;
       padding: 0.5rem 1rem;
       border-radius: 1rem;
@@ -118,24 +120,34 @@
     {% endif %}
   </div>
   
-  
   <br>
+
   <div id="inputArea">
-    <input type="text" id="userInput" placeholder="Whats on your mind {{ username }}?">
+    <input type="text" id="userInput" placeholder="What's on your mind, {{ username }}?">
     <button onclick="sendMessage()">Send</button>
   </div>
 
-
-
 <script>
+const chatBox = document.getElementById('chatBox');
+
 async function sendMessage() {
-    const userInput = document.getElementById('userInput').value;
+    const userInputField = document.getElementById('userInput');
+    const userInput = userInputField.value.trim();
     if (!userInput) return;
 
+    // Create and display user's message
     const userMessage = document.createElement('div');
     userMessage.className = 'user-message';
     userMessage.innerHTML = `<strong>You:</strong> ${userInput}`;
     chatBox.appendChild(userMessage);
+
+    // Create and display "PocketFreud is typing..." message
+    const typingMessage = document.createElement('div');
+    typingMessage.className = 'bot-message';
+    typingMessage.innerHTML = `<em>PocketFreud is typing...</em>`;
+    chatBox.appendChild(typingMessage);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
         const response = await fetch('/api/chat', {
@@ -149,19 +161,17 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+        chatBox.removeChild(typingMessage);
 
         if (data.response) {
-            chatBox.removeChild(typingMessage);
-
             const botMessage = document.createElement('div');
             botMessage.className = 'bot-message';
             botMessage.innerHTML = `<strong>PocketFreud:</strong> `;
             chatBox.appendChild(botMessage);
 
-            // 🧠 Typing effect word by word:
+            // Typing effect
             const words = data.response.split(' ');
             let wordIndex = 0;
-
             const interval = setInterval(() => {
                 if (wordIndex < words.length) {
                     botMessage.innerHTML += words[wordIndex] + ' ';
@@ -170,48 +180,39 @@ async function sendMessage() {
                 } else {
                     clearInterval(interval);
                 }
-            }, 150); // Adjust typing speed here (milliseconds between words)
-
+            }, 150);
         } else {
-            chatBox.removeChild(typingMessage);
-
             const errorMessage = document.createElement('div');
             errorMessage.className = 'bot-message';
             errorMessage.innerHTML = `<strong>Error:</strong> No response received`;
             chatBox.appendChild(errorMessage);
         }
 
-        // 🔥 NEW: Smooth scroll down
-        chatBox.scrollTo({
-            top: chatBox.scrollHeight,
-            behavior: 'smooth'
-        });
-
-
-
     } catch (error) {
         console.error(error);
-        chatBox.innerHTML += `<div><strong>Error:</strong> ${error.message}</div>`;
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'bot-message';
+        errorMessage.innerHTML = `<strong>Error:</strong> ${error.message}`;
+        chatBox.appendChild(errorMessage);
     }
 
-    document.getElementById('userInput').value = '';
-        // 🔥 NEW: Smooth scroll down
+    // Clear input
+    userInputField.value = '';
+
+    // Scroll to bottom
     chatBox.scrollTo({
         top: chatBox.scrollHeight,
         behavior: 'smooth'
     });
-
-    document.addEventListener('DOMContentLoaded', function() {
-    const input = document.getElementById('userInput');
-    input.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault(); // prevent form submission if inside <form>
-            sendMessage();
-        }
-    });
-});
 }
 
+// Send on ENTER key
+document.getElementById('userInput').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        sendMessage();
+    }
+});
 </script>
 
 </body>
