@@ -149,14 +149,46 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+
         if (data.response) {
-          const botMessage = document.createElement('div');
-          botMessage.className = 'bot-message';
-          botMessage.innerHTML = `<strong>PocketFreud:</strong> ${data.response}`;
-          chatBox.appendChild(botMessage);
+            chatBox.removeChild(typingMessage);
+
+            const botMessage = document.createElement('div');
+            botMessage.className = 'bot-message';
+            botMessage.innerHTML = `<strong>PocketFreud:</strong> `;
+            chatBox.appendChild(botMessage);
+
+            // 🧠 Typing effect word by word:
+            const words = data.response.split(' ');
+            let wordIndex = 0;
+
+            const interval = setInterval(() => {
+                if (wordIndex < words.length) {
+                    botMessage.innerHTML += words[wordIndex] + ' ';
+                    wordIndex++;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 150); // Adjust typing speed here (milliseconds between words)
+
         } else {
-            chatBox.innerHTML += `<div><strong>Error:</strong> No response received</div>`;
+            chatBox.removeChild(typingMessage);
+
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'bot-message';
+            errorMessage.innerHTML = `<strong>Error:</strong> No response received`;
+            chatBox.appendChild(errorMessage);
         }
+
+        // 🔥 NEW: Smooth scroll down
+        chatBox.scrollTo({
+            top: chatBox.scrollHeight,
+            behavior: 'smooth'
+        });
+
+
+
     } catch (error) {
         console.error(error);
         chatBox.innerHTML += `<div><strong>Error:</strong> ${error.message}</div>`;

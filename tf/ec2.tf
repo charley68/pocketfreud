@@ -90,7 +90,8 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-output "ami_id" {
-  value = data.aws_ami.amazon_linux.id
-}
 
+resource "aws_eip" "my_elastic_ip" {
+  instance = aws_instance.app_server
+  vpc      = true
+}
