@@ -171,6 +171,7 @@ def serve_chat():
 def chat():
     print(">>> /api/chat route hit <<<") 
     if 'user_id' not in session:
+        print("User not authenticated.")
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
@@ -181,6 +182,7 @@ def chat():
     
     messages = data.get('messages', [])
     if not messages:
+        print("No messages in request payload.")
         return jsonify({"error": "No messages provided"}), 400
 
     user_prompt = messages[-1]['content']
@@ -228,7 +230,13 @@ def chat():
                 json={"model": "gpt-3.5-turbo", "messages": conv_history}
             )
             result = response.json()
-            ai_message = result["choices"][0]["message"]["content"]
+            if "choices" in result:
+                ai_message = result["choices"][0]["message"]["content"]
+            else:
+                error_message = result.get("error", {}).get("message", "Unknown error from OpenAI API")
+                print(f"OpenAI API Error: {error_message}")
+                return jsonify({"error": f"OpenAI API Error: {error_message}"}), 500
+
 
         # Save user and bot messages
         save_message_for_user(session['user_id'], 'user', user_prompt)

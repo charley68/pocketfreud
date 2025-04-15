@@ -1,7 +1,7 @@
 
 resource "aws_instance" "app_server" {
 
-  ami           = data.aws_ami.amazon_linux.id
+  ami           = data.aws_ami.ubuntu.id
   #instance_type = "t3.medium"
   instance_type = "t3.micro"
 
@@ -21,7 +21,18 @@ user_data = <<-EOF
 
   apt-get update -y
   apt-get upgrade -y
-  apt-get install -y python3 python3-pip python3-venv nginx git curl
+  apt-get install -y python3 python3-pip python3-venv nginx git curl software-properties-common
+
+
+  # === Install Certbot ===
+  add-apt-repository ppa:certbot/certbot -y
+  apt-get update -y
+  apt-get install -y certbot python3-certbot-nginx
+
+  # === Set domain (update to your real domain) ===
+  DOMAIN_NAME="pocketfreud.com"
+
+
 
   cd /opt
   rm -rf pocketfreud
@@ -64,28 +75,33 @@ user_data = <<-EOF
 
   # --- Setup Nginx ---
   cat <<NGINXCONF > /etc/nginx/sites-available/default
-  server {
-      listen 80 default_server;
-      listen [::]:80 default_server;
-      server_name _;
+server {
+    listen 80;
+    server_name $DOMAIN_NAME;
 
-      location /static/ {
-          root /opt/pocketfreud/;
-      }
+    location /static/ {
+        root /opt/pocketfreud/;
+    }
 
-      location / {
-          proxy_pass http://127.0.0.1:5000/;
-          proxy_http_version 1.1;
-          proxy_set_header Upgrade \$http_upgrade;
-          proxy_set_header Connection "upgrade";
-          proxy_set_header Host \$host;
-          proxy_cache_bypass \$http_upgrade;
-      }
-  }
+    location / {
+        proxy_pass http://127.0.0.1:5000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
   NGINXCONF
 
   sudo chown -R ubuntu:ubuntu /opt/pocketfreud
   systemctl restart nginx
+
+  === Request SSL Certificate ===
+  certbot --nginx --non-interactive --agree-tos --email sclane68@yahoo.co.uk -d $DOMAIN_NAME
+
+  # === Optional: Auto renew via cron ===
+  #echo "0 3 * * * root certbot renew --quiet && systemctl reload nginx" > /etc/cron.d/certbot-auto-renew
 
   echo "=== PocketFreud Setup Complete ==="
 EOF
@@ -96,20 +112,13 @@ EOF
   }
 }
 
-# Fetch latest Amazon Linux 2 AMI for Free Tier
-data "aws_ami" "amazon_linux" {
+data "aws_ami" "ubuntu" {
   most_recent = true
-
-  owners      = ["099720109477"] # Canonical (Ubuntu)
+  owners      = ["099720109477"] # Canonical
 
   filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
   }
 }
 

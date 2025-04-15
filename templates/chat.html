@@ -149,6 +149,9 @@ async function sendMessage() {
 
     chatBox.scrollTop = chatBox.scrollHeight;
 
+    console.log("SendMessage .....");
+    console.log(userInput);
+
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -156,6 +159,9 @@ async function sendMessage() {
             body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] })
         });
 
+        console.log("Response .....");
+        console.log(response);
+        
         if (!response.ok) {
             throw new Error(`Server error: ${response.status}`);
         }
