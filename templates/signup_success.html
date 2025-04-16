@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to PocketFreud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Inter', sans-serif;
+      color: white;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .success-box {
+      background: rgba(0,0,0,0.6);
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      animation: fadeIn 0.8s ease-in;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    a {
+      color: #7BAFD4;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="success-box">
+  <h2>🎉 Account Created!</h2>
+  <p>Thanks for signing up, <strong>{{ username }}</strong>! You can now sign in and start chatting with PocketFreud.</p>
+  <a href="{{ url_for('signin') }}">Go to Sign In</a>
+</div>
+
+</body>
+</html>

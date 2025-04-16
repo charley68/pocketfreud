@@ -100,7 +100,7 @@ def logout():
 def signup():
     if request.method == 'POST':
         username = request.form['username']
-        email = request.form['email']
+        email = request.form['email'].strip().lower()
         password = request.form['password']
 
         conn = get_db_connection()
@@ -108,9 +108,10 @@ def signup():
             conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
                          (username, email, password))
             conn.commit()
-            flash('Account created successfully! Please log in.')
+            return render_template('signup_success.html', username=username)
         except sqlite3.IntegrityError:
             flash('Email already exists. Please use a different email.')
+            return redirect(url_for('signup'))
         finally:
             conn.close()
         return redirect(url_for('signin'))
@@ -119,7 +120,7 @@ def signup():
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
-        email = request.form['email']
+        email = request.form['email'].strip().lower()
         password = request.form['password']
 
         conn = get_db_connection()

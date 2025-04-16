@@ -5,85 +5,190 @@
   <title>Sign Up - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
-      background-size: cover;
-      font-family: 'Inter', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: #ffffff;
-    }
+   
+  body {
+    background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
+    background-size: cover;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #ffffff;
+  }
 
-    .flash-messages {
-      margin-bottom: 1rem;
-    }
+  .signup-container {
+    background: rgba(0, 0, 0, 0.65);
+    padding: 2.5rem;
+    border-radius: 12px;
+    width: 320px;
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  }
 
-    .flash {
-      background-color: #ff4d4d;
-      padding: 0.7rem;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      color: white;
-    }
+  .signup-container h2 {
+    margin-top: 0;
+    font-size: 1.8rem;
+  }
 
-    .signup-container {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 2rem;
-      border-radius: 10px;
-      width: 300px;
-      text-align: center;
+  .signup-container p {
+    font-size: 0.95rem;
+    color: #ccc;
+    margin-bottom: 1.5rem;
+  }
+
+  .input-wrapper,
+  .password-wrapper {
+    width: 100%;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .input-wrapper input,
+  .password-wrapper input {
+    width: 100%;
+    padding: 0.7rem;
+    border: none;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+
+  .password-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .password-wrapper input {
+    padding-right: 2.5rem;
+  }
+
+  .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #ddd;
+  }
+
+  button {
+    width: 100%;
+    padding: 0.9rem;
+    margin-top: 0.5rem;
+    background-color: #7BAFD4;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #6aa3c7;
+  }
+
+  .signup-container:hover {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+    transform: scale(1.01);
+    transition: all 0.3s ease;
+  }
+
+
+
+  .flash-messages {
+    margin-bottom: 1rem;
+  }
+
+  .flash {
+    background-color: #ff4d4d;
+    padding: 0.7rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: white;
+  }
+
+  .footer-link {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .footer-link a {
+    color: #c9e4ff;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .footer-link a:hover {
+    text-decoration: underline;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-    input[type="text"], input[type="email"], input[type="password"] {
-      width: 100%;
-      padding: 0.7rem;
-      margin: 0.5rem 0;
-      border: none;
-      border-radius: 6px;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
-    button {
-      width: 100%;
-      padding: 0.8rem;
-      margin-top: 1rem;
-      background-color: #7BAFD4;
-      border: none;
-      border-radius: 6px;
-      color: white;
-      font-weight: bold;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #6aa3c7;
-    }
+  }
+
+  .logo {
+    width: 50px;
+    margin-bottom: 1rem;
+  }
+
   </style>
 </head>
 <body>
 
-
-
-<div class="signup-container">
-  <h2>Create Account</h2>
-
-  {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="flash-messages">
-      {% for message in messages %}
-        <div class="flash">{{ message }}</div>
-      {% endfor %}
+  <div class="signup-container">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">
+    <h2>Create Account</h2>
+    <p>Welcome to PocketFreud!</p>
+  
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for message in messages %}
+            <div class="flash">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  
+    <form action="/signup" method="post">
+      <div class="input-wrapper">
+        <input type="text" name="username" placeholder="Your Name" required>
+      </div>
+      <div class="input-wrapper">
+        <input type="email" name="email" placeholder="Email Address" required>
+      </div>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <span class="toggle-password" onclick="togglePassword()">👁️</span>
+      </div>
+      <button type="submit">Sign Up</button>
+    </form>
+  
+    <div class="footer-link">
+      Already have an account? <a href="/signin">Sign in</a>
     </div>
-  {% endif %}
-  {% endwith %}
+  </div>
+  
 
-  <form action="/signup" method="post">
-    <input type="text" name="username" placeholder="Your Name" required><br>
-    <input type="email" name="email" placeholder="Email Address" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Sign Up</button>
-  </form>
-</div>
+<script>
+  function togglePassword() {
+    const input = document.getElementById("password");
+    input.type = input.type === "password" ? "text" : "password";
+  }
+</script>
 
 </body>
 </html>

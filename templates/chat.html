@@ -221,5 +221,14 @@ document.getElementById('userInput').addEventListener('keydown', function(event)
 });
 </script>
 
+<script>
+  window.onload = function () {
+    const chatBox = document.getElementById('chatBox');
+    if (chatBox) {
+      chatBox.scrollTop = chatBox.scrollHeight;  // Auto scroll to bottom
+    }
+  };
+</script>
+
 </body>
 </html>

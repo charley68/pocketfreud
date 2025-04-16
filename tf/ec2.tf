@@ -15,73 +15,103 @@ resource "aws_instance" "app_server" {
   #   volume_type = "gp2"          # General Purpose SSD
   #}
 
-user_data = <<-EOF
-  #!/bin/bash
-  exec > /var/log/user-data.log 2>&1
+user_data = <<-EOT
+#!/bin/bash
+exec > /var/log/user-data.log 2>&1
 
-  apt-get update -y
-  apt-get upgrade -y
-  apt-get install -y python3 python3-pip python3-venv nginx git curl software-properties-common
+DOMAIN_NAME="pocketfreud.com"
+EMAIL="sclane68@yahoo.co.uk"
 
+# Update system and install dependencies
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y python3 python3-pip python3-venv nginx git curl software-properties-common
 
-  # === Install Certbot ===
-  add-apt-repository ppa:certbot/certbot -y
-  apt-get update -y
-  apt-get install -y certbot python3-certbot-nginx
+apt-get install sqlite3
 
-  # === Set domain (update to your real domain) ===
-  DOMAIN_NAME="pocketfreud.com"
+# Install Certbot
+add-apt-repository ppa:certbot/certbot -y
+apt-get update -y
+apt-get install -y certbot python3-certbot-nginx
 
+# --- Clone your app ---
+cd /opt
+rm -rf pocketfreud
+git clone https://github.com/charley68/pocketfreud.git
 
+# --- Set up Python virtual environment and install requirements ---
+cd /opt/pocketfreud
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
 
-  cd /opt
-  rm -rf pocketfreud
-  git clone https://github.com/charley68/pocketfreud.git
+# --- Environment variables ---
+export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+export USE_OLLAMA=false
+export OPENAI_API_KEY="${var.openai_api_key}"  # Terraform will replace this at runtime
 
-  cd /opt/pocketfreud
-  python3 -m venv venv
-  source venv/bin/activate
-  pip install --upgrade pip
-  pip install -r requirements.txt
+# --- Create systemd service for Gunicorn ---
+cat <<SERVICE > /etc/systemd/system/pocketfreud.service
+[Unit]
+Description=Gunicorn to serve PocketFreud Flask App
+After=network.target
 
-  # Environment variables
-  export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
-  export USE_OLLAMA=false
-  export OPENAI_API_KEY="${var.openai_api_key}"
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/opt/pocketfreud
+Environment="PATH=/opt/pocketfreud/venv/bin"
+Environment="FLASK_SECRET_KEY=$FLASK_SECRET_KEY"
+Environment="USE_OLLAMA=$USE_OLLAMA"
+Environment="OPENAI_API_KEY=$OPENAI_API_KEY"
+ExecStart=/opt/pocketfreud/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:app
 
-  # --- Create systemd service for PocketFreud Gunicorn ---
-  cat <<SERVICE > /etc/systemd/system/pocketfreud.service
-  [Unit]
-  Description=Gunicorn to serve PocketFreud Flask App
-  After=network.target
+[Install]
+WantedBy=multi-user.target
+SERVICE
 
-  [Service]
-  User=ubuntu
-  Group=www-data
-  WorkingDirectory=/opt/pocketfreud
-  Environment="PATH=/opt/pocketfreud/venv/bin"
-  Environment="FLASK_SECRET_KEY=$FLASK_SECRET_KEY"
-  Environment="USE_OLLAMA=$USE_OLLAMA"
-  Environment="OPENAI_API_KEY=$OPENAI_API_KEY"
-  ExecStart=/opt/pocketfreud/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:app
+systemctl daemon-reload
+systemctl enable pocketfreud
+chown -R ubuntu:www-data /opt/pocketfreud
+chmod -R 775 /opt/pocketfreud
+systemctl start pocketfreud
 
-  [Install]
-  WantedBy=multi-user.target
-  SERVICE
-
-  systemctl daemon-reload
-  systemctl enable pocketfreud
-  systemctl start pocketfreud
-
-  # --- Setup Nginx ---
-  cat <<NGINXCONF > /etc/nginx/sites-available/default
+# --- Stage 1: Temporary HTTP-only config for Certbot ---
+cat <<EOF > /etc/nginx/sites-available/default
 server {
     listen 80;
-    server_name $DOMAIN_NAME;
+    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
 
-    location /static/ {
-        root /opt/pocketfreud/;
+    location / {
+        root /var/www/html;
+        index index.html;
     }
+}
+EOF
+
+systemctl restart nginx
+sleep 5
+
+# --- Stage 2: Request SSL certificate from Let's Encrypt ---
+certbot --nginx --non-interactive --agree-tos --email $EMAIL -d $DOMAIN_NAME -d www.$DOMAIN_NAME
+
+# --- Stage 3: Final secure Nginx config ---
+cat <<EOF > /etc/nginx/sites-available/default
+server {
+    listen 80;
+    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name $DOMAIN_NAME www.$DOMAIN_NAME;
+
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     location / {
         proxy_pass http://127.0.0.1:5000/;
@@ -91,20 +121,17 @@ server {
         proxy_set_header Host \$host;
         proxy_cache_bypass \$http_upgrade;
     }
+
+    location /static/ {
+        root /opt/pocketfreud/;
+    }
 }
-  NGINXCONF
-
-  sudo chown -R ubuntu:ubuntu /opt/pocketfreud
-  systemctl restart nginx
-
-  === Request SSL Certificate ===
-  certbot --nginx --non-interactive --agree-tos --email sclane68@yahoo.co.uk -d $DOMAIN_NAME
-
-  # === Optional: Auto renew via cron ===
-  #echo "0 3 * * * root certbot renew --quiet && systemctl reload nginx" > /etc/cron.d/certbot-auto-renew
-
-  echo "=== PocketFreud Setup Complete ==="
 EOF
+
+systemctl reload nginx
+echo "✅ Setup complete with HTTPS!"
+EOT
+
 
 
   tags = {

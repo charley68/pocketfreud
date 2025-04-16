@@ -4,67 +4,156 @@
   <meta charset="UTF-8">
   <title>Sign In - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
     body {
       background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
       background-size: cover;
       font-family: 'Inter', sans-serif;
+      margin: 0;
+      color: #ffffff;
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: #ffffff;
+      padding: 1rem;
     }
+  
     .signin-container {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 2rem;
-      border-radius: 10px;
-      width: 300px;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      padding: 2.5rem 2rem;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       text-align: center;
     }
+  
+    h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+  
     input[type="email"], input[type="password"] {
       width: 100%;
-      padding: 0.7rem;
+      padding: 0.9rem;
       margin: 0.5rem 0;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
+      font-size: 1rem;
+      box-sizing: border-box;
     }
+  
     button {
       width: 100%;
-      padding: 0.8rem;
-      margin-top: 1rem;
+      padding: 0.9rem;
+      margin-top: 1.2rem;
       background-color: #7BAFD4;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       color: white;
-      font-weight: bold;
+      font-weight: 600;
       font-size: 1rem;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
+  
     button:hover {
       background-color: #6aa3c7;
     }
-
+  
     .flash-messages {
       margin-bottom: 1rem;
-    } 
+    }
+  
+    .flash {
+      background-color: #ff4d4d;
+      padding: 0.7rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      color: white;
+    }
+  
+    @media (max-width: 480px) {
+      .signin-container {
+        padding: 2rem 1.2rem;
+      }
+  
+      h2 {
+        font-size: 1.5rem;
+      }
+  
+      button {
+        font-size: 0.95rem;
+      }
+    }
 
-  .flash {
-    background-color: #ff4d4d;
-    padding: 0.7rem;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    color: white;
+    .logo {
+      max-width: 80px;
+      margin-bottom: 1rem;
+    }
+
+    .tagline {
+      font-size: 1rem;
+      margin: 0 0 1.2rem 0;
+      color: #cccccc;
+    }
+
+    /* Fade-in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+  .signin-container {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 2rem;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  /* Signup link */
+  .signup-link {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #cccccc;
+  }
+
+  .signup-link a {
+    color: #7BAFD4;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .signup-link a:hover {
+    text-decoration: underline;
+  }
+
+  .signin-container:hover {
+    transform: scale(1.01);
+    transition: transform 0.3s ease;
   }
   </style>
+  
 </head>
-<body>
 
-  
+<body>
   <div class="signin-container">
+    
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <p class="tagline">Welcome back to PocketFreud</p>
+
     <h2>Sign In</h2>
-  
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="flash-messages">
@@ -74,13 +163,20 @@
         </div>
       {% endif %}
     {% endwith %}
-  
+
     <form action="/signin" method="post">
       <input type="email" name="email" placeholder="Email Address" required><br>
       <input type="password" name="password" placeholder="Password" required><br>
       <button type="submit">Sign In</button>
     </form>
-  </div>
 
+    <div class="signup-link">
+      Don’t have an account?
+      <a href="{{ url_for('signup') }}">Sign up</a>
+    </div>
+
+
+  </div>
 </body>
+
 </html>
