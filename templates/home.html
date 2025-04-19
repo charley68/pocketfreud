@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home - PocketFreud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
+      background-size: cover;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .logo {
+      max-width: 80px;
+      height: auto;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    nav span {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .nav-button {
+      background-color: #7BAFD4;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      text-decoration: none;
+    }
+
+    .nav-button:hover {
+      background-color: #6aa3c7;
+    }
+
+    .container {
+      padding: 2rem 1rem 5rem;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .emojis {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      font-size: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .menu-button {
+      display: block;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 1rem;
+      border-radius: 12px;
+      margin: 1rem auto;
+      width: 300px;
+      font-size: 1rem;
+      color: white;
+      text-align: center;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.2s ease;
+    }
+
+    .menu-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-around;
+      padding: 0.6rem 0;
+      backdrop-filter: blur(10px);
+    }
+
+    .bottom-nav div {
+      color: #eee;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .bottom-nav div i {
+      font-size: 1.2rem;
+    }
+
+    .emoji-button {
+      font-size: 2rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.3s ease;
+    }
+
+    .emoji-button:hover {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+
+
+  </style>
+</head>
+<body>
+
+  <!-- ✅ Header -->
+  <div class="header-bar">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <nav>
+      <span>Hello, {{ username }}!</span>
+      <a class="nav-button" href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+  </div>
+
+  <!-- ✅ Main Content -->
+  <div class="container">
+    <h1>Hi {{ username }}, how are you feeling today?</h1>
+
+    <div class="emojis">
+        <span class="emoji-button" onclick="selectMood('happy')">😊</span>
+        <span class="emoji-button" onclick="selectMood('neutral')">😐</span>
+        <span class="emoji-button" onclick="selectMood('sad')">😟</span>
+        <span class="emoji-button" onclick="selectMood('anxious')">😕</span>
+        <span class="emoji-button" onclick="selectMood('angry')">😠</span>
+      </div>
+      
+
+    <button class="menu-button" onclick="comingSoon('Journal')">📝 Journal Entry</button>
+    <button class="menu-button" onclick="comingSoon('Goals')">🎯 Today’s Goal</button>
+
+    <form action="/chat" method="get">
+      <button type="submit" class="menu-button">💬 Talk to PocketFreud</button>
+    </form>
+  </div>
+
+  <script>
+    function selectMood(mood) {
+      const note = prompt("Want to add a note about how you're feeling?");
+      fetch('/log_mood', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mood: mood,
+          note: note || '',
+          timestamp: new Date().toISOString()
+        })
+      }).then(response => {
+        if (response.ok) {
+        } else {
+          alert("Failed to save mood.");
+        }
+      });
+    }
+
+    function comingSoon(feature) {
+        alert(`${feature} is coming soon!`);
+    }
+
+  </script>
+  
+
+  <!-- ✅ Bottom Nav -->
+  <div class="bottom-nav">
+    <div>
+      <i>🏠</i>
+      <div>Home</div>
+    </div>
+    <div>
+      <i>📓</i>
+      <div>Journal</div>
+    </div>
+    <div>
+      <i>📊</i>
+      <div>Insights</div>
+    </div>
+    <div>
+      <i>⋯</i>
+      <div>More</div>
+    </div>
+  </div>
+
+</body>
+</html>

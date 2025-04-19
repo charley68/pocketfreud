@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Learn More - PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      color: white;
+      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
+      background-size: cover;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2rem;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1.05rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .back-button {
+      display: inline-block;
+      margin-top: 1rem;
+      background-color: #7BAFD4;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .back-button:hover {
+      background-color: #6aa3c7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Learn More</h1>
+    <p><strong>PocketFreud</strong> is your AI companion for emotional support and mental well-being. Whether you're looking for someone to talk to, keep a journal, or reflect on your feelings, PocketFreud is here 24/7 — non-judgmental, private, and always listening.</p>
+
+    <p>Use it daily to track your mood, express your thoughts, or simply vent in a safe, supportive space. You can revisit your previous chats, set goals for emotional growth, or just check in with how you're feeling each day.</p>
+
+    <p>No diagnosis. No pressure. Just a helpful companion to make life's mental load feel a little lighter.</p>
+
+    <a class="back-button" href="{{ url_for('home') }}">← Back to Home</a>
+  </div>
+</body>
+</html>

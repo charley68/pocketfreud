@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PocketFreud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='welcome.css') }}">
+</head>
+<body>
+  <header class="top-bar">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    <h1 class="app-title">PocketFreud</h1>
+  
+    <nav class="nav-buttons">
+      {% if 'username' in session %}
+        <span class="greeting">Hello, {{ session['username'] }}!</span>
+        <a class="nav-button" href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a class="nav-button" href="{{ url_for('signin') }}">Sign In</a>
+        <a class="nav-button" href="{{ url_for('signup') }}">Sign Up</a>
+      {% endif %}
+    </nav>
+  </header>
+  
+
+  <main class="hero">
+    <h2>Talking Helps</h2>
+    <p>PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.</p>
+    <div class="cta-buttons">
+      <a href="/chat" class="btn primary">Try Demo</a>
+      <a href="{{ url_for('about') }}" class="btn secondary">Learn More</a>
+    </div>
+
+    <section class="features">
+      <div class="feature-card">
+        <img src="/static/icons/icon_chat.png" alt="Chat Icon">
+        <div class="feature-text">
+          <h3>Private, Empathetic Chat</h3>
+          <p>Talk any time. Day or night. No judgement, always here to listen.</p>
+        </div>
+      </div>
+    
+      <div class="feature-card">
+        <img src="/static/icons/icon_checkin.png" alt="Check-in Icon">
+        <div class="feature-text">
+          <h3>Daily Mental Check-ins</h3>
+          <p>Gently track how you're feeling and reflect with AI guidance.</p>
+        </div>
+      </div>
+    
+      <div class="feature-card">
+        <img src="/static/icons/icon_progress.png" alt="Progress Icon">
+        <div class="feature-text">
+          <h3>Personal Progress Tools</h3>
+          <p>Set goals, keep a journal, and track emotional growth.</p>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+</body>
+</html>

@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, render_template, session, flash
-import sqlite3
 import os
 import requests
 import random
 import datetime
 import traceback
+import uuid
+import pymysql
+import pymysql.err
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
-
-DATABASE = '/opt/pocketfreud/database.db'
 
 # Environment-based model selector
 USE_OLLAMA = os.getenv('USE_OLLAMA', 'false').lower() == 'true'
@@ -18,46 +18,58 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 # -------------------- Helper functions --------------------
 
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
+    conn = pymysql.connect(
+        host=os.environ['DB_HOST'],
+        user=os.environ['DB_USER'],
+        password=os.environ['DB_PASS'],
+        database=os.environ['DB_NAME'],
+        cursorclass=pymysql.cursors.DictCursor
+    )
     return conn
 
 def init_db():
     conn = get_db_connection()
     with conn:
-        conn.execute('''
+        cursor = conn.cursor()
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-            )
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL
+            );
         ''')
-        conn.execute('''
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS conversations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
                 message TEXT NOT NULL,
-                sender TEXT NOT NULL,
+                sender VARCHAR(100) NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                archive BOOLEAN DEFAULT FALSE,
+                groupTitle VARCHAR(255),
                 FOREIGN KEY (user_id) REFERENCES users(id)
-            )
+            );
         ''')
-        user_count = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
-        if user_count == 0:
-            conn.execute('''
-                INSERT INTO users (username, email, password)
-                VALUES (?, ?, ?)
-            ''', ('Steve', 'sclane68@yahoo.co.uk', 'Twins2018!'))
-    conn.close()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS mood_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                mood VARCHAR(50) NOT NULL,
+                note TEXT,
+                timestamp DATETIME NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        ''')
+        conn.commit()
 
 def save_message_for_user(user_id, sender, message):
     conn = get_db_connection()
     with conn:
-        conn.execute('INSERT INTO conversations (user_id, sender, message) VALUES (?, ?, ?)',
-                     (user_id, sender, message))
-    conn.close()
-
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO conversations (user_id, sender, message, archive) VALUES (%s, %s, %s, %s)',
+                       (user_id, sender, message, 0))
+        conn.commit()
 
 def pick_initial_greeting(username):
     now = datetime.datetime.now()
@@ -88,13 +100,83 @@ def pick_initial_greeting(username):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    if 'user_id' in session:
+        return render_template('home.html', username=session.get('username'))
+    else:
+        return render_template('welcome.html')
+
+@app.route('/about')
+def about():
+    return render_template('learn_more.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
     flash('You have been logged out.')
     return redirect(url_for('home'))
+
+@app.route('/api/chat_history')
+def chat_history():
+    if 'user_id' not in session:
+        return jsonify([])
+
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT groupTitle, MAX(timestamp) as latest
+            FROM conversations
+            WHERE user_id = %s AND archive = 1
+            GROUP BY groupTitle
+            ORDER BY latest DESC
+        ''', (session['user_id'],))
+        rows = cursor.fetchall()
+
+    return jsonify(rows)
+
+@app.route('/api/restore_chat', methods=['POST'])
+def restore_chat():
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    new_label = data.get('label', 'Untitled')
+    restore_group = data.get('restore')
+
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE conversations
+            SET archive = 1, groupTitle = %s
+            WHERE user_id = %s AND archive = 0
+        ''', (new_label, session['user_id']))
+
+        cursor.execute('''
+            UPDATE conversations
+            SET archive = 0
+            WHERE user_id = %s AND groupTitle = %s
+        ''', (session['user_id'], restore_group))
+
+        conn.commit()
+
+    return '', 204
+
+@app.route('/api/unarchived_message_count')
+def unarchived_message_count():
+    if 'user_id' not in session:
+        return jsonify({"count": 0})
+
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT COUNT(*) as count FROM conversations WHERE user_id = %s AND archive = 0',
+            (session['user_id'],)
+        )
+        row = cursor.fetchone()
+
+    return jsonify({"count": row["count"]})
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -105,16 +187,16 @@ def signup():
 
         conn = get_db_connection()
         try:
-            conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-                         (username, email, password))
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)',
+                           (username, email, password))
             conn.commit()
             return render_template('signup_success.html', username=username)
-        except sqlite3.IntegrityError:
+        except pymysql.err.IntegrityError:
             flash('Email already exists. Please use a different email.')
             return redirect(url_for('signup'))
         finally:
             conn.close()
-        return redirect(url_for('signin'))
     return render_template('signup.html')
 
 @app.route('/signin', methods=['GET', 'POST'])
@@ -124,8 +206,10 @@ def signin():
         password = request.form['password']
 
         conn = get_db_connection()
-        user = conn.execute('SELECT id, username FROM users WHERE email = ? AND password = ?',
-                            (email, password)).fetchone()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, username FROM users WHERE email = %s AND password = %s',
+                        (email, password))
+        user = cursor.fetchone()
         conn.close()
 
         if user:
@@ -138,49 +222,46 @@ def signin():
             return redirect(url_for('signin'))
     return render_template('signin.html')
 
-@app.route('/chat.html')
-def serve_chat():
+@app.route('/chat')
+def chat_page():
     if 'user_id' not in session:
-        return redirect('/signin')
+        return redirect(url_for('signin'))
 
     conn = get_db_connection()
-    messages = conn.execute('''
-        SELECT sender, message FROM conversations 
-        WHERE user_id = ? 
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT sender, message FROM conversations
+        WHERE user_id = %s AND archive = 0
         ORDER BY timestamp ASC
         LIMIT 20
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    messages = cursor.fetchall()
 
-    # If no conversation yet, insert a dynamic first greeting
-    if not messages:
-        first_message = pick_initial_greeting(session['username'])
-        save_message_for_user(session['user_id'], 'bot', first_message)
-
-        # Re-fetch updated messages
-        messages = conn.execute('''
-            SELECT sender, message FROM conversations 
-            WHERE user_id = ? 
-            ORDER BY timestamp ASC
-            LIMIT 20
-        ''', (session['user_id'],)).fetchall()
+    cursor.execute('''
+        SELECT groupTitle FROM conversations
+        WHERE user_id = %s AND archive = 0
+        ORDER BY timestamp DESC LIMIT 1
+    ''', (session['user_id'],))
+    row = cursor.fetchone()
+    group_title = row['groupTitle'] if row else None
 
     conn.close()
 
-    return render_template('chat.html', messages=messages, username=session['username'])
+    return render_template('chat.html', messages=messages, username=session['username'], groupTitle=group_title)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    print(">>> /api/chat route hit <<<") 
     if 'user_id' not in session:
         print("User not authenticated.")
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        data = request.get_json(force=True)  # force=True tries even if header wrong
+        data = request.get_json(force=True)
     except Exception as e:
         print(f"Failed to parse JSON: {str(e)}")
         return jsonify({"error": "Invalid JSON payload"}), 400
-    
+
     messages = data.get('messages', [])
     if not messages:
         print("No messages in request payload.")
@@ -188,19 +269,20 @@ def chat():
 
     user_prompt = messages[-1]['content']
 
-    # Build conversation history
     conv_history = [{
         "role": "system",
         "content": "You are PocketFreud, a gentle, empathetic AI who helps users reflect on their emotions and feel supported. You speak in a calming, non-judgmental tone."
     }]
 
     conn = get_db_connection()
-    past_conversations = conn.execute('''
+    cursor = conn.cursor()
+    cursor.execute('''
         SELECT sender, message FROM conversations 
-        WHERE user_id = ? 
+        WHERE user_id = %s AND archive = 0
         ORDER BY timestamp ASC
         LIMIT 20
-    ''', (session['user_id'],)).fetchall()
+    ''', (session['user_id'],))
+    past_conversations = cursor.fetchall()
     conn.close()
 
     for conv in past_conversations:
@@ -209,7 +291,6 @@ def chat():
             "content": conv["message"]
         })
 
-    # Add current user message
     conv_history.append({"role": "user", "content": user_prompt})
 
     try:
@@ -238,17 +319,56 @@ def chat():
                 print(f"OpenAI API Error: {error_message}")
                 return jsonify({"error": f"OpenAI API Error: {error_message}"}), 500
 
-
-        # Save user and bot messages
         save_message_for_user(session['user_id'], 'user', user_prompt)
         save_message_for_user(session['user_id'], 'bot', ai_message)
 
-        return jsonify({"response": ai_message})
+        return jsonify({
+            "response": ai_message
+        })
 
     except Exception as e:
         print("Exception occurred in /api/chat")
-        print(traceback.format_exc())   # <-- this prints the full crash stack
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/new_chat', methods=['POST'])
+def new_chat():
+    if 'user_id' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    user_id = session['user_id']
+    data = request.get_json()
+    group_title = data.get('groupTitle', 'Untitled Chat')
+
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE conversations
+            SET archive = 1, groupTitle = %s
+            WHERE user_id = %s AND archive = 0
+        ''', (group_title, user_id))
+        conn.commit()
+
+    return '', 204
+
+@app.route('/log_mood', methods=['POST'])
+def log_mood():
+    data = request.get_json()
+    user_id = session.get('user_id')
+
+    if user_id:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO mood_logs (user_id, mood, note, timestamp) VALUES (%s, %s, %s, %s)',
+            (user_id, data['mood'], data['note'], data['timestamp'])
+        )
+        conn.commit()
+        conn.close()
+        return '', 204
+    else:
+        return 'Unauthorized', 401
 
 # Initialize database
 init_db()

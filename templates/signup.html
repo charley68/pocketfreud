@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Sign Up - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
    
   body {
@@ -16,28 +17,24 @@
     height: 100vh;
     margin: 0;
     color: #ffffff;
+    padding: 1rem;
+    overflow-y: auto;
   }
+
 
   .signup-container {
     background: rgba(0, 0, 0, 0.65);
-    padding: 2.5rem;
+    backdrop-filter: blur(8px);
+    padding: 2.5rem 2rem;
     border-radius: 12px;
-    width: 320px;
+    width: 100%;
+    max-width: 400px;       /* ← desktop max width stays */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     text-align: center;
-    animation: fadeInUp 0.6s ease-out;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    animation: fadeInUp 0.8s ease-out;
+    transition: transform 0.3s ease;
   }
 
-  .signup-container h2 {
-    margin-top: 0;
-    font-size: 1.8rem;
-  }
-
-  .signup-container p {
-    font-size: 0.95rem;
-    color: #ccc;
-    margin-bottom: 1.5rem;
-  }
 
   .input-wrapper,
   .password-wrapper {
@@ -45,6 +42,7 @@
     margin-bottom: 1rem;
     position: relative;
   }
+  
 
   .input-wrapper input,
   .password-wrapper input {
@@ -139,14 +137,29 @@
     }
   }
 
-  .logo {
-    width: 50px;
-    margin-bottom: 1rem;
-  }
+  .back-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+  z-index: 1000;
+  transition: background 0.2s ease;
+}
 
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
   </style>
 </head>
 <body>
+
+  <a href="{{ url_for('home') }}" class="back-button" aria-label="Go back to main menu">← Back</a>
 
   <div class="signup-container">
     <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">

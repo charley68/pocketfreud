@@ -6,7 +6,7 @@ resource "aws_instance" "app_server" {
   instance_type = "t3.micro"
 
 
-  subnet_id     = aws_subnet.public.id
+  subnet_id     = aws_subnet.public1.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
   key_name      = var.key_pair_name
@@ -27,7 +27,6 @@ apt-get update -y
 apt-get upgrade -y
 apt-get install -y python3 python3-pip python3-venv nginx git curl software-properties-common
 
-apt-get install sqlite3
 
 # Install Certbot
 add-apt-repository ppa:certbot/certbot -y
@@ -49,7 +48,14 @@ pip install -r requirements.txt
 # --- Environment variables ---
 export FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 export USE_OLLAMA=false
-export OPENAI_API_KEY="${var.openai_api_key}"  # Terraform will replace this at runtime
+
+export OPENAI_API_KEY="${var.openai_api_key}"
+export DB_USER="${var.db_username}"  
+export DB_PASS="${var.db_password}"  
+export DB_NAME="${var.db_name}"  
+export DB_HOST="${aws_db_instance.freud.endpoint}" 
+
+
 
 # --- Create systemd service for Gunicorn ---
 cat <<SERVICE > /etc/systemd/system/pocketfreud.service
