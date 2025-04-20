@@ -8,12 +8,17 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <div class="header-bar">
-    <a href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
-    </a>
-    <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
-  </div>
+
+    <!-- ✅ Header -->
+    <div class="top-bar authenticated">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+      <div class="branding">
+        <h1 class="app-title">PocketFreud</h1>
+      </div>
+      <nav class="nav-buttons">
+          <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
+      </nav>
+    </div>
 
   <div class="chat-header">
     <h1>Let's Talk</h1>
@@ -85,12 +90,12 @@
   </div>
 
   <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
-    <a href="#" onclick="loadHistory()">🕓 History</a>
+    <a href="#" onclick="promptArchiveBeforeHistory()">🕓 History</a>
     <a href="{{ url_for('logout') }}">🔓 Logout</a>
   </div>
 
   <script>
-    let currentGroupTitle = {{ groupTitle|tojson }};
+    let groupTitle = {{ groupTitle|tojson }};
     let pendingRestore = null;
 
     function closeModal() {
@@ -124,14 +129,14 @@
     }
 
     async function restoreSession(groupTitle) {
-      const countRes = await fetch('/api/unarchived_message_count');
+      const countRes = await fetch('/api/unlabled_message_count');
       const { count } = await countRes.json();
       if (count <= 1) {
         await performRestore(groupTitle);
       } else {
         document.getElementById('sessionLabel').value = '';
-        document.getElementById('modalTitle').textContent = 'Archive This Session?';
-        document.getElementById('modalMessage').textContent = 'Give this session a label before switching to the selected conversation.';
+        document.getElementById('modalTitle').textContent = 'Archive Current Session?';
+        document.getElementById('modalMessage').textContent = 'Do you want to give the current conversation a label so it can be restored later or discard it ?';
         document.getElementById('confirmModalAction').textContent = 'Label & Switch';
         pendingRestore = groupTitle;
         document.getElementById('confirmModalAction').onclick = async () => {
@@ -156,8 +161,7 @@
       });
       location.reload();
     }
-  </script>
-  <script>
+
     const chatBox = document.getElementById('chatBox');
 
     async function sendMessage() {
@@ -181,7 +185,10 @@
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: [{ role: 'user', content: userInput }] })
+          body: JSON.stringify({ 
+            messages: [{ role: 'user', content: userInput }],
+            groupTitle: groupTitle  // 👈 pass it here
+          })
         });
 
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -250,30 +257,65 @@
       document.getElementById('historyModal').style.display = 'none';
     }
 
-    async function loadHistory() {
-      const modal = document.getElementById('historyModal');
-      const tableBody = document.querySelector('#historyTable tbody');
-      tableBody.innerHTML = '';
+   
+    
+  async function promptArchiveBeforeHistory() {
+    const countRes = await fetch('/api/unlabled_message_count');
+    const { count } = await countRes.json();
 
-      try {
-        const res = await fetch('/api/chat_history');
-        const data = await res.json();
+    if (count <= 1) {
+      // Nothing to save, just show history
+      loadHistoryModal();
+    } else {
+      // Prompt to archive current session
+      document.getElementById('sessionLabel').value = '';
+      document.getElementById('modalTitle').textContent = 'Label & Save Current Session?';
+      document.getElementById('modalMessage').textContent = 'You can give this session a label before switching.';
+      document.getElementById('confirmModalAction').textContent = 'Save';
 
-        data.forEach(row => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.groupTitle}</td>
-            <td>${new Date(row.latest).toLocaleString()}</td>
-            <td><button onclick="restoreSession('${row.groupTitle}')">Continue</button></td>
-          `;
-          tableBody.appendChild(tr);
+      document.getElementById('confirmModalAction').onclick = async () => {
+        const label = document.getElementById('sessionLabel').value.trim();
+        closeModal();
+
+        await fetch('/api/new_chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupTitle: label || 'Untitled Chat' })
         });
 
-        modal.style.display = 'flex';
-      } catch (err) {
-        alert('Failed to load chat history.');
-      }
+        loadHistoryModal();
+      };
+
+
+      document.getElementById('confirmModal').style.display = 'flex';
     }
+  }
+
+  async function loadHistoryModal() {
+    const modal = document.getElementById('historyModal');
+    const tableBody = document.querySelector('#historyTable tbody');
+    tableBody.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/chat_history');
+      const data = await res.json();
+
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.groupTitle}</td>
+          <td>${new Date(row.latest).toLocaleString()}</td>
+          <td><button onclick="restoreSession('${row.groupTitle}')">Restore</button></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      modal.style.display = 'flex';
+    } catch (err) {
+      alert('Failed to load chat history.');
+    }
+  }
+
   </script>
 </body>
 </html>

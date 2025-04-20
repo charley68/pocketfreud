@@ -63,12 +63,12 @@ def init_db():
         ''')
         conn.commit()
 
-def save_message_for_user(user_id, sender, message):
+def save_message_for_user(user_id, sender, message, groupTitle):
     conn = get_db_connection()
     with conn:
         cursor = conn.cursor()
-        cursor.execute('INSERT INTO conversations (user_id, sender, message, archive) VALUES (%s, %s, %s, %s)',
-                       (user_id, sender, message, 0))
+        cursor.execute('INSERT INTO conversations (user_id, sender, message, archive, groupTitle) VALUES (%s, %s, %s, %s, %s)',
+                       (user_id, sender, message, 0, groupTitle))
         conn.commit()
 
 def pick_initial_greeting(username):
@@ -140,7 +140,6 @@ def restore_chat():
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.get_json()
-    new_label = data.get('label', 'Untitled')
     restore_group = data.get('restore')
 
     conn = get_db_connection()
@@ -148,9 +147,9 @@ def restore_chat():
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE conversations
-            SET archive = 1, groupTitle = %s
+            SET archive = 1
             WHERE user_id = %s AND archive = 0
-        ''', (new_label, session['user_id']))
+        ''', ( session['user_id']))
 
         cursor.execute('''
             UPDATE conversations
@@ -162,8 +161,8 @@ def restore_chat():
 
     return '', 204
 
-@app.route('/api/unarchived_message_count')
-def unarchived_message_count():
+@app.route('/api/unlabled_message_count')
+def unlabled_message_count():
     if 'user_id' not in session:
         return jsonify({"count": 0})
 
@@ -171,7 +170,7 @@ def unarchived_message_count():
     with conn:
         cursor = conn.cursor()
         cursor.execute(
-            'SELECT COUNT(*) as count FROM conversations WHERE user_id = %s AND archive = 0',
+            'SELECT COUNT(*) as count FROM conversations WHERE user_id = %s AND groupTitle IS NULL',
             (session['user_id'],)
         )
         row = cursor.fetchone()
@@ -223,12 +222,22 @@ def signin():
     return render_template('signin.html')
 
 @app.route('/chat')
-def chat_page():
+def chat_load():
     if 'user_id' not in session:
         return redirect(url_for('signin'))
 
     conn = get_db_connection()
     cursor = conn.cursor()
+
+
+    cursor.execute('''
+        SELECT groupTitle FROM conversations
+        WHERE user_id = %s AND archive = 0
+        ORDER BY timestamp DESC LIMIT 1
+    ''', (session['user_id'],))
+
+    row = cursor.fetchone()
+    groupTitle = row['groupTitle'] if row else None
 
     cursor.execute('''
         SELECT sender, message FROM conversations
@@ -238,20 +247,13 @@ def chat_page():
     ''', (session['user_id'],))
     messages = cursor.fetchall()
 
-    cursor.execute('''
-        SELECT groupTitle FROM conversations
-        WHERE user_id = %s AND archive = 0
-        ORDER BY timestamp DESC LIMIT 1
-    ''', (session['user_id'],))
-    row = cursor.fetchone()
-    group_title = row['groupTitle'] if row else None
-
     conn.close()
 
-    return render_template('chat.html', messages=messages, username=session['username'], groupTitle=group_title)
+    return render_template('chat.html', messages=messages, username=session.get('username'), groupTitle=groupTitle)
+
 
 @app.route('/api/chat', methods=['POST'])
-def chat():
+def chat_write():
     if 'user_id' not in session:
         print("User not authenticated.")
         return jsonify({'error': 'Unauthorized'}), 401
@@ -263,6 +265,7 @@ def chat():
         return jsonify({"error": "Invalid JSON payload"}), 400
 
     messages = data.get('messages', [])
+    group_title = data.get('groupTitle')
     if not messages:
         print("No messages in request payload.")
         return jsonify({"error": "No messages provided"}), 400
@@ -319,16 +322,18 @@ def chat():
                 print(f"OpenAI API Error: {error_message}")
                 return jsonify({"error": f"OpenAI API Error: {error_message}"}), 500
 
-        save_message_for_user(session['user_id'], 'user', user_prompt)
-        save_message_for_user(session['user_id'], 'bot', ai_message)
+        print("SAVE USER MESSAGES", flush=True)
+
+        save_message_for_user(session['user_id'], 'user', user_prompt, group_title)
+        save_message_for_user(session['user_id'], 'bot', ai_message, group_title)
 
         return jsonify({
             "response": ai_message
         })
 
     except Exception as e:
-        print("Exception occurred in /api/chat")
-        print(traceback.format_exc())
+        print("❌ Exception occurred in /api/chat", flush=True)
+        print(traceback.format_exc(), flush=True)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/new_chat', methods=['POST'])

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Welcome to PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
@@ -10,32 +11,41 @@
       background-size: cover;
       font-family: 'Inter', sans-serif;
       color: white;
-      text-align: center;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      text-align: center;
+      min-height: 100vh;
       margin: 0;
+      padding: 1rem;
+      box-sizing: border-box;
     }
 
     .success-box {
-      background: rgba(0,0,0,0.6);
-      padding: 2rem;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2.5rem;
       border-radius: 12px;
-      max-width: 400px;
-      width: 90%;
+      max-width: 500px;
+      width: 100%;
       animation: fadeIn 0.8s ease-in;
+      box-sizing: border-box;
     }
 
     h2 {
       margin-top: 0;
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
     }
 
     a {
       color: #7BAFD4;
       font-weight: bold;
       text-decoration: none;
+      font-size: 1.1rem;
     }
 
     a:hover {
@@ -47,34 +57,29 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-      /* Zoom effect on mobile */
-  @media (max-width: 600px) {
-    .success-box {
-      transform: scale(1.4); /* Slight zoom */
-      padding: 2.5rem;
-    }
+    /* Responsive tweaks for small screens */
+    @media (max-width: 600px) {
+      .success-box {
+        padding: 3rem 2rem;
+      }
 
-    h2 {
-      font-size: 2rem;
-    }
+      h2 {
+        font-size: 2.4rem;
+      }
 
-    p {
-      font-size: 1.1rem;
+      p, a {
+        font-size: 1.2rem;
+      }
     }
-
-    a {
-      font-size: 1rem;
-    }
-  }
   </style>
 </head>
 <body>
 
-<div class="success-box">
-  <h2>🎉 Account Created!</h2>
-  <p>Thanks for signing up, <strong>{{ username }}</strong>! You can now sign in and start chatting with PocketFreud.</p>
-  <a href="{{ url_for('signin') }}">Go to Sign In</a>
-</div>
+  <div class="success-box">
+    <h2>🎉 Account Created!</h2>
+    <p>Thanks for signing up, <strong>{{ username }}</strong>! You can now sign in and start chatting with PocketFreud.</p>
+    <a href="{{ url_for('signin') }}">Go to Sign In</a>
+  </div>
 
 </body>
 </html>

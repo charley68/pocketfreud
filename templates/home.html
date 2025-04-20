@@ -10,11 +10,13 @@
 <body>
 
   <!-- ✅ Header -->
-  <div class="header-bar">
+  <div class="top-bar authenticated">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
-    <nav>
-      <span>Hello, {{ username }}!</span>
-      <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
+    <nav class="nav-buttons">
+        <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
     </nav>
   </div>
 

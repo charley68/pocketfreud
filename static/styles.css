@@ -92,7 +92,7 @@ nav span {
 }
 
 .chat-header {
-  margin-top: 80px;
+
   text-align: center;
   flex-shrink: 0;
 }
@@ -389,56 +389,50 @@ button:hover, .btn:hover {
 
 .feature-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.5rem;
+  max-width: 700px;
   width: 90%;
-  max-width: 600px;
-  gap: 1rem;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
 }
 
-.feature-card img {
-  height: 64px;
-  width: 64px;
+.feature-icon {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   flex-shrink: 0;
-  margin-top: 0.25rem;
+}
+
+.feature-icon img {
+  width: 100%;          /* Increase from ~50% */
+  height: 100%;         /* Keep same ratio */
+  object-fit: contain;
 }
 
 .feature-text {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  text-align: left;
 }
 
 .feature-text h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  color: white;
+  margin: 0 0 0.4rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .feature-text p {
-  margin-top: 0.5rem;
+  margin: 0;
   font-size: 1rem;
-  color: #eee;
-}
-
-.feature-icon {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  padding: 1.5rem;
-  width: 96px;
-  height: 96px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.feature-icon img {
-  max-width: 100%;
-  height: auto;
-  object-fit: contain;
-  aspect-ratio: 1 / 1;
+  color: #ddd;
 }
 
 
@@ -519,10 +513,11 @@ h1 {
   }
 
   .logo {
-    height: 90px;
+    height: 80px;
     position: absolute;
     top: 1rem;
     left: 1rem;
+    height: auto;
   }
 
   .app-title {
@@ -572,6 +567,45 @@ h1 {
   }
 
   .logout-button {
-    align-self: flex-end;
+    width: auto; /* prevents full width */
+    white-space: nowrap;
   }
+
+
+  .top-bar.authenticated {
+    position: relative; /* make it a positioned container */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+  }
+  
+  .top-bar.authenticated .logo {
+    height: 55px;
+  }
+  
+  .top-bar.authenticated .branding {
+    position: absolute;
+    top: 20px; /* 👈 Adjust this value as needed */
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 1;
+  }
+  
+  .top-bar.authenticated .app-title {
+    font-size: 1.8rem;
+    margin: 0;
+  }
+  
+  .top-bar.authenticated .nav-buttons {
+    margin-left: auto;
+    z-index: 2;
+  }
+  
+  .top-bar.authenticated .logout-button {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
 }
