@@ -103,7 +103,7 @@ def home():
     if 'user_id' in session:
         return render_template('home.html', username=session.get('username'))
     else:
-        return render_template('welcome.html')
+        return render_template('index.html')
 
 @app.route('/about')
 def about():

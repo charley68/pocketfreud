@@ -5,10 +5,5 @@ output "instance_url" {
 
 output "rds_endpoint" {
   description = "The endpoint of the RDS instance"
-  value = aws_db_instance.freud.endpoint
-}
-
-output "rds_port" {
-  description = "The port the RDS instance is listening on"
-      value = aws_db_instance.freud.port
+  value = aws_db_instance.freud.address
 }

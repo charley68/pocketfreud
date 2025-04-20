@@ -46,6 +46,26 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+      /* Zoom effect on mobile */
+  @media (max-width: 600px) {
+    .success-box {
+      transform: scale(1.4); /* Slight zoom */
+      padding: 2.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+    }
+
+    a {
+      font-size: 1rem;
+    }
+  }
   </style>
 </head>
 <body>

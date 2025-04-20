@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='welcome.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+
   <header class="top-bar">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
-    <h1 class="app-title">PocketFreud</h1>
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
   
     <nav class="nav-buttons">
       {% if 'username' in session %}
@@ -22,6 +25,7 @@
       {% endif %}
     </nav>
   </header>
+  
   
 
   <main class="hero">
