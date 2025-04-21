@@ -2,8 +2,10 @@
 
 html, body {
   margin: 0;
-  height: 100%;
-  overflow: hidden;
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-family: 'Inter', sans-serif;
   color: white;
 }
@@ -95,6 +97,7 @@ nav span {
 
   text-align: center;
   flex-shrink: 0;
+  margin-top: -10rem; /* bring it up slightly */
 }
 
 .chat-wrapper {
@@ -225,18 +228,13 @@ button:hover, .btn:hover {
   align-self: flex-start;
 }
 
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  justify-content: center;
-  align-items: center;
-  z-index: 3000;
+.profile-card {
+  padding: 1.5rem;
+  width: 95%;
 }
+
+
+
 
 .modal {
   background: white;
@@ -273,6 +271,136 @@ button:hover, .btn:hover {
   font-size: 1.5rem;
   color: #333;
 }
+
+
+
+.chat-header {
+  margin-top: 5px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.chat-title {
+  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#promptIdeasBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+.pulse-icon {
+  width: 1.6em;
+  height: 1.6em;
+  margin-left: 0.4rem;
+  vertical-align: text-bottom;
+  animation: pulse 2s infinite;
+  position: relative;
+  top: -4px;
+}
+
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    stroke: #fff8b0;  /* Pale yellow */
+  }
+  50% {
+    transform: scale(1.2);
+    stroke: #FFD700;  /* Deeper gold */
+  }
+}
+
+
+
+.icon-button {
+  background: none;
+  border: none;
+  padding-left: 0.5rem;
+  cursor: pointer;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+}
+
+
+
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.suggestion-box {
+  background: white;
+  color: #333;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  animation: fadeInUp 0.4s ease;
+  text-align: left;
+}
+
+.suggestion-box h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+#suggestionsList {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+#suggestionsList li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+#suggestionsList li:hover {
+  background: #f5f5f5;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 .label-input {
   width: 100%;
@@ -493,6 +621,177 @@ h1 {
   to { opacity: 1; transform: translateY(0); }
 }
 
+
+/ ********************** */
+/* Profile Page Layout */
+/ ********************** */
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-icon {
+  font-size: 1.1rem;
+}
+
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+.profile-card label {
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+/* Adjust spacing */
+.profile-card {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  box-sizing: border-box;
+  margin: 0 1rem;
+}
+
+/* Input field padding and width constraints */
+.profile-card input,
+.profile-card select,
+.profile-card textarea {
+  padding: 1rem;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-heading-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 2rem;
+  color: white;
+  margin: 1rem 0;
+}
+
+.profile-logo {
+  width: 140px;
+  height: 140px;
+}
+
+.profile-card textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+
+
+.profile-card input[readonly] {
+  background-color: #eee;
+  color: #666;
+}
+
+.profile-card .menu-button {
+  margin-top: 1rem;
+  background: #7BAFD4;
+  color: white;
+  border: none;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.profile-card .menu-button:hover {
+  background: #5a95bd;
+}
+
+.title-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+
+
+/* Back button in top-left */
+.profile-back {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+
+.info-wrapper {
+  cursor: pointer;
+}
+
+.info-icon {
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.info-popup {
+  display: none;
+  position: absolute;
+  top: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: #333;
+  padding: 1.4rem 1.6rem;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+  font-size: 1rem;
+  line-height: 1.6;
+  z-index: 100;
+  width: 90vw;
+  max-width: 500px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.info-wrapper:hover .info-popup {
+  display: block;
+}
+
+.profile-heading-container:hover .info-popup {
+  display: block;
+}
+
+
+
+/* MOBILE */
+
+
 @media (max-width: 768px) {
   /* Index page: branding layout */
   .top-bar {
@@ -606,6 +905,47 @@ h1 {
   .top-bar.authenticated .logout-button {
     padding: 0.4rem 0.9rem;
     font-size: 0.9rem;
+  }
+
+  .profile-heading {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+
+  .profile-card {
+    width: 95%;
+    padding: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .profile-card input,
+  .profile-card select,
+  .profile-card textarea {
+    font-size: 1rem;
+    padding: 1rem;
+  }
+
+  .profile-heading {
+    font-size: 1.8rem;
+  }
+
+  .profile-logo {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-popup {
+    padding: 1rem;
+    font-size: 0.95rem;
+    max-width: 90vw;
+    min-width: 70vw;
+  }
+
+  .profile-back {
+    font-size: 1rem;
+    top: 1rem;
+    left: 1rem;
   }
 
 }

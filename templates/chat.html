@@ -20,9 +20,28 @@
       </nav>
     </div>
 
-  <div class="chat-header">
-    <h1>Let's Talk</h1>
+    <div class="chat-header">
+      <h1>Let's Talk
+        <button onclick="openSuggestions()" class="icon-button" title="Get suggestions">
+          <svg class="pulse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 13v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1a7 7 0 0 0-4-13z"/>
+          </svg>
+        </button>
+      </h1>
+    </div>
+    
+
+  <div id="suggestionsModal" class="modal-overlay">
+    <div class="modal suggestion-box">
+      <h2>Need ideas?</h2>
+      <ul id="suggestionsList"></ul>
+      <div class="modal-buttons">
+        <button onclick="closeSuggestions()">Close</button>
+      </div>
+    </div>
   </div>
+  
 
   <div class="chat-wrapper">
     <div id="chatBox">
@@ -97,6 +116,7 @@
   <script>
     let groupTitle = {{ groupTitle|tojson }};
     let pendingRestore = null;
+    let moreJustOpened = false;
 
     function closeModal() {
       document.getElementById('confirmModal').style.display = 'none';
@@ -222,7 +242,7 @@
       chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
     }
 
-    let moreJustOpened = false;
+
 
     function toggleMoreMenu() {
       const menu = document.getElementById('moreMenu');
@@ -316,6 +336,28 @@
     }
   }
 
+  function openSuggestions() {
+  fetch('/suggestions')
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById('suggestionsList');
+      list.innerHTML = '';
+      data.forEach(prompt => {
+        const li = document.createElement('li');
+        li.textContent = prompt;
+        li.onclick = () => {
+          document.getElementById('userInput').value = prompt;
+          closeSuggestions();
+        };
+        list.appendChild(li);
+      });
+      document.getElementById('suggestionsModal').classList.add('show');
+    });
+}
+
+function closeSuggestions() {
+  document.getElementById('suggestionsModal').classList.remove('show');
+}
   </script>
 </body>
 </html>

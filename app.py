@@ -36,7 +36,11 @@ def init_db():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL UNIQUE,
-                password VARCHAR(255) NOT NULL
+                password VARCHAR(255) NOT NULL,                       
+                age INT,
+                sex VARCHAR(10),
+                occupation VARCHAR(100),
+                bio TEXT
             );
         ''')
         cursor.execute('''
@@ -374,6 +378,54 @@ def log_mood():
         return '', 204
     else:
         return 'Unauthorized', 401
+    
+@app.route('/suggestions')
+def suggestions():
+    prompts = [
+        "What's a good way to calm anxiety?",
+        "How do I build better habits?",
+        "Why do I feel stuck lately?",
+        "Can you help me practice gratitude?",
+        "What are good ways to improve my mood?",
+        "How can I be more mindful today?"
+    ]
+    return jsonify(prompts)
+
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("signin"))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        age = request.form.get("age")
+        sex = request.form.get("sex")
+        occupation = request.form.get("occupation")
+        bio = request.form.get("bio")
+
+        cursor.execute("""
+            UPDATE users
+            SET username = %s, age = %s, sex = %s, occupation = %s, bio = %s
+            WHERE id = %s
+        """, (username, age, sex, occupation, bio, user_id))
+        conn.commit()
+        cursor.close()
+        conn.close()  # ✅ safely release DB connection
+        return redirect(url_for("home"))
+
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template("profile.html", user=user)
+
+
+
 
 # Initialize database
 init_db()

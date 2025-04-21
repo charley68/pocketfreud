@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Your Profile - PocketFreud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+ 
+    <div class="profile-container">
+        <a href="{{ url_for('home') }}" class="profile-back">← Back</a>
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="profile-logo">
+     
+        <div class="profile-heading-container">
+            <h1 class="profile-heading">
+                PROFILE
+                <span class="info-wrapper">
+                  <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" height="28" viewBox="0 0 24 24" width="28" fill="white">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                </span>
+              </h1>
+          
+            <div class="info-popup">
+              <strong>Why fill this in?</strong><br/>
+              Providing extra details helps the AI understand you better — responses can feel more accurate, personal, and helpful.<br/><br/>
+              <em>Your information is never shared with third parties and is securely encrypted.</em>
+            </div>
+          </div>
+          
+        <div class="profile-card">
+          <form method="POST" action="{{ url_for('profile') }}">
+            
+            <div class="form-row">
+              <label><span class="form-icon">👤</span> Username</label>
+              <input type="text" name="username" value="{{ user.username }}" />
+            </div>
+      
+            <div class="form-row">
+              <label><span class="form-icon">📅</span> Age</label>
+              <input type="number" name="age" value="{{ user.age or '' }}" />
+            </div>
+      
+            <div class="form-row">
+              <label><span class="form-icon">⚧</span> Sex</label>
+              <select name="sex">
+                <option value="">Select</option>
+                <option value="Male" {% if user.sex == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if user.sex == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other" {% if user.sex == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+      
+            <div class="form-row">
+              <label><span class="form-icon">💼</span> Occupation</label>
+              <input type="text" name="occupation" value="{{ user.occupation or '' }}" />
+            </div>
+      
+            <div class="form-row">
+              <label><span class="form-icon">📝</span> Bio</label>
+              <textarea name="bio">{{ user.bio or '' }}</textarea>
+            </div>
+      
+            <button type="submit" class="menu-button">Save Profile</button>
+          </form>
+        </div>
+      </div>
+      
+</body>
+</html>

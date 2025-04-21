@@ -41,7 +41,47 @@
     </form>
   </div>
 
+    <!-- ✅ Bottom Nav -->
+    <div class="bottom-nav">
+      <a href="#"><div><i>📓</i><div>Journal</div></div></a>
+      <a href="#"><div><i>📊</i><div>Insights</div></div></a>
+      <div class="more-container">
+        <div class="more-button" onclick="toggleMoreMenu()">
+          <i>⋯</i>
+          <div>More</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
+      <a href="{{ url_for('profile') }}">👤 Profile</a>
+    </div>
+
   <script>
+    let moreJustOpened = false;
+
+    function toggleMoreMenu() {
+      const menu = document.getElementById('moreMenu');
+      const isVisible = menu.classList.contains('show');
+
+      if (!isVisible) {
+        menu.classList.add('show');
+        moreJustOpened = true;
+        setTimeout(() => { moreJustOpened = false; }, 200);
+      } else {
+        menu.classList.remove('show');
+      }
+    }
+
+    window.addEventListener('click', function (e) {
+      const menu = document.getElementById('moreMenu');
+      const button = document.querySelector('.more-button');
+
+      if (!button.contains(e.target) && !moreJustOpened) {
+        menu.classList.remove('show');
+      }
+    });
+
     function selectMood(mood) {
       const note = prompt("Want to add a note about how you're feeling?");
       fetch('/log_mood', {
@@ -66,26 +106,6 @@
 
   </script>
   
-
-  <!-- ✅ Bottom Nav -->
-  <div class="bottom-nav">
-    <div>
-      <i>🏠</i>
-      <div>Home</div>
-    </div>
-    <div>
-      <i>📓</i>
-      <div>Journal</div>
-    </div>
-    <div>
-      <i>📊</i>
-      <div>Insights</div>
-    </div>
-    <div>
-      <i>⋯</i>
-      <div>More</div>
-    </div>
-  </div>
 
 </body>
 </html>
