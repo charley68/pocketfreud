@@ -32,8 +32,8 @@
     </div>
 
     <!-- Journal Form -->
-    <div class="journal-form-container">
-        <form method="POST" class="journal-form">
+    <form method="POST" action="{{ url_for('journal', date=date_param) }}">
+        <input type="hidden" name="date" value="{{ date_param }}">
             <textarea name="journalText" class="journal-textarea">{{ journal_text }}</textarea>
 
             <div class="journal-buttons">

@@ -526,39 +526,57 @@ def profile():
     return render_template("profile.html", user=user)
 
 
+
 @app.route('/journal', methods=['GET', 'POST'])
 def journal():
     if 'user_id' not in session:
         return redirect(url_for('signin'))
 
     user_id = session['user_id']
-    date_param = request.args.get('date')
-    month_param = request.args.get('month')
-    year_param = request.args.get('year')
 
-    # If date_param exists, load that specific entry
+    date_param = request.args.get('date') or request.form.get('date')
     if date_param:
-        date_obj = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
+        entry_date = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
     else:
-        date_obj = datetime.date.today()
+        entry_date = datetime.date.today()
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Load journal entry
+    if request.method == 'POST':
+        journal_text = request.form.get('journalText', '').strip()
+
+        cursor.execute('''
+            INSERT INTO journals (user_id, entry_date, entry)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE entry = %s, updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, entry_date, journal_text, journal_text))
+
+        conn.commit()
+        flash('Journal entry saved.')
+
+        # ✅ Redirect after save to trigger a new GET request
+        conn.close()
+        return redirect(url_for('journal', date=entry_date.strftime("%Y-%m-%d")))
+
+    # 🧠 GET method: fetch the latest journal text
     cursor.execute('''
         SELECT entry FROM journals WHERE user_id = %s AND entry_date = %s
-    ''', (user_id, date_obj))
+    ''', (user_id, entry_date))
     row = cursor.fetchone()
+
     journal_text = row['entry'] if row else ''
 
     conn.close()
 
     return render_template('journal_entry.html',
                            journal_text=journal_text,
-                           today=date_obj.strftime("%B %d, %Y"),
-                           back_month=month_param,
-                           back_year=year_param)
+                           today=entry_date.strftime("%B %d, %Y"),
+                           date_param=entry_date.strftime("%Y-%m-%d"))
+
+
+
+
 
 
 
