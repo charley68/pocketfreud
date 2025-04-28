@@ -3,77 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>Welcome to PocketFreud</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
-      background-size: cover;
-      font-family: 'Inter', sans-serif;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 1rem;
-      box-sizing: border-box;
-    }
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-    .success-box {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 2.5rem;
-      border-radius: 12px;
-      max-width: 500px;
-      width: 100%;
-      animation: fadeIn 0.8s ease-in;
-      box-sizing: border-box;
-    }
 
-    h2 {
-      margin-top: 0;
-      font-size: 2rem;
-    }
-
-    p {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    a {
-      color: #7BAFD4;
-      font-weight: bold;
-      text-decoration: none;
-      font-size: 1.1rem;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsive tweaks for small screens */
-    @media (max-width: 600px) {
-      .success-box {
-        padding: 3rem 2rem;
-      }
-
-      h2 {
-        font-size: 2.4rem;
-      }
-
-      p, a {
-        font-size: 1.2rem;
-      }
-    }
-  </style>
 </head>
-<body>
+
+<body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
   <div class="success-box">
     <h2>🎉 Account Created!</h2>

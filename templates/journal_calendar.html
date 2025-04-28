@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Journal Calendar | PocketFreud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='calendar.css') }}">
+</head>
+<body class="prod-env">
+
+<div class="calendar-page">
+
+  <div class="calendar-header">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="calendar-logo">
+    <h1>My Journal</h1>
+    <h2 id="calendarMonth"></h2>
+
+    <div class="month-nav">
+      <button id="prevMonth" class="nav-button-small">← Prev</button>
+      <button id="nextMonth" class="nav-button-small">Next →</button>
+    </div>
+  </div>
+
+  <div class="calendar-card">
+    <div class="calendar-grid" id="calendarGrid">
+      <!-- Days will be generated dynamically -->
+    </div>
+
+    <div class="calendar-buttons">
+      <button id="viewEntryBtn" class="journal-button save-button" disabled>View Entry</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-nav">
+  <div>Chat</div>
+  <div>Mood</div>
+  <div>More</div>
+</div>
+
+<script>
+/* Dynamic Calendar JS here */
+
+const monthNames = ["January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"];
+
+let currentMonth = new Date().getMonth(); // 0-11
+let currentYear = new Date().getFullYear(); // 2025 etc
+let selectedDate = null;
+
+const journalDates = {{ journal_dates|tojson }};
+const journalEntries = {};
+journalDates.forEach(date => journalEntries[date] = true);
+
+function renderCalendar(month, year) {
+  const grid = document.getElementById('calendarGrid');
+  const monthLabel = document.getElementById('calendarMonth');
+  const viewButton = document.getElementById('viewEntryBtn');
+  selectedDate = null;
+  viewButton.disabled = true;
+
+  grid.innerHTML = '';
+
+  // Set Month Title
+  monthLabel.textContent = `${monthNames[month]} ${year}`;
+
+  // Day Names
+  const daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"];
+  for (const day of daysOfWeek) {
+    const div = document.createElement('div');
+    div.className = 'day-name';
+    div.textContent = day;
+    grid.appendChild(div);
+  }
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const numDays = new Date(year, month + 1, 0).getDate();
+
+  // Empty slots
+  for (let i = 0; i < firstDay; i++) {
+    const div = document.createElement('div');
+    div.className = 'day';
+    grid.appendChild(div);
+  }
+
+  // Days
+  for (let day = 1; day <= numDays; day++) {
+    const div = document.createElement('div');
+    div.className = 'day';
+    div.textContent = day;
+
+    const formattedDate = `${year}-${String(month+1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    if (journalEntries[formattedDate]) {
+      div.classList.add('highlight');
+      div.setAttribute('data-date', formattedDate);
+
+      div.addEventListener('click', () => {
+        document.querySelectorAll('.highlight').forEach(d => d.classList.remove('selected'));
+        div.classList.add('selected');
+        selectedDate = formattedDate;
+        viewButton.disabled = false;
+      });
+    }
+
+    grid.appendChild(div);
+  }
+}
+
+// Initial render
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const monthParam = params.get('month');
+  const yearParam = params.get('year');
+
+  if (monthParam && yearParam) {
+    currentMonth = parseInt(monthParam) - 1; // Because JS month is 0-based
+    currentYear = parseInt(yearParam);
+  }
+
+  renderCalendar(currentMonth, currentYear);
+
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar(currentMonth, currentYear);
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar(currentMonth, currentYear);
+  });
+
+  document.getElementById('viewEntryBtn').addEventListener('click', () => {
+    if (selectedDate) {
+      window.location.href = `/journal?date=${selectedDate}&month=${currentMonth+1}&year=${currentYear}`;
+    }
+  });
+});
+
+</script>
+
+</body>
+</html>

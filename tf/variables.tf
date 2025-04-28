@@ -21,6 +21,14 @@ variable "openai_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "catchpha_key" {
+  description = "Your Google Catchpa Secret key"
+  type        = string
+  sensitive   = true
+}
+
+
 variable "db_username" {
   description = "user for rds"
   type        = string

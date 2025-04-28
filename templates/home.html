@@ -7,7 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
 
   <!-- ✅ Header -->
   <div class="top-bar authenticated">
@@ -33,17 +34,20 @@
       </div>
       
 
-    <button class="menu-button" onclick="comingSoon('Journal')">📝 Journal Entry</button>
+    <form action="{{ url_for('journal') }}" method="get">
+      <button type="submit" class="menu-button">📝 Journal Entry</button>
+    </form>
+
     <button class="menu-button" onclick="comingSoon('Goals')">🎯 Today’s Goal</button>
 
-    <form action="/chat" method="get">
+    <form action="{{ url_for('chat') }}" method="get">
       <button type="submit" class="menu-button">💬 Talk to PocketFreud</button>
     </form>
   </div>
 
     <!-- ✅ Bottom Nav -->
     <div class="bottom-nav">
-      <a href="#"><div><i>📓</i><div>Journal</div></div></a>
+      <a href="{{ url_for('journal_calendar') }}"><div><i>📓</i><div>Journal</div></div></a>
       <a href="#"><div><i>📊</i><div>Insights</div></div></a>
       <div class="more-container">
         <div class="more-button" onclick="toggleMoreMenu()">

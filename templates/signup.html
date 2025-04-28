@@ -3,165 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign Up - PocketFreud</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-   
-  body {
-    background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
-    background-size: cover;
-    font-family: 'Inter', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    color: #ffffff;
-    padding: 1rem;
-    overflow-y: auto;
-  }
-
-
-  .signup-container {
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    padding: 2.5rem 2rem;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 400px;       /* ← desktop max width stays */
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    animation: fadeInUp 0.8s ease-out;
-    transition: transform 0.3s ease;
-  }
-
-
-  .input-wrapper,
-  .password-wrapper {
-    width: 100%;
-    margin-bottom: 1rem;
-    position: relative;
-  }
-  
-
-  .input-wrapper input,
-  .password-wrapper input {
-    width: 100%;
-    padding: 0.7rem;
-    border: none;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 1rem;
-  }
-
-  .password-wrapper {
-    display: flex;
-    align-items: center;
-  }
-
-  .password-wrapper input {
-    padding-right: 2.5rem;
-  }
-
-  .toggle-password {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 1.1rem;
-    color: #ddd;
-  }
-
-  button {
-    width: 100%;
-    padding: 0.9rem;
-    margin-top: 0.5rem;
-    background-color: #7BAFD4;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  button:hover {
-    background-color: #6aa3c7;
-  }
-
-  .signup-container:hover {
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
-    transform: scale(1.01);
-    transition: all 0.3s ease;
-  }
-
-
-
-  .flash-messages {
-    margin-bottom: 1rem;
-  }
-
-  .flash {
-    background-color: #ff4d4d;
-    padding: 0.7rem;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    color: white;
-  }
-
-  .footer-link {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-  }
-
-  .footer-link a {
-    color: #c9e4ff;
-    text-decoration: none;
-    font-weight: 600;
-  }
-
-  .footer-link a:hover {
-    text-decoration: underline;
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .back-button {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 0.95rem;
-  z-index: 1000;
-  transition: background 0.2s ease;
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+ 
 </head>
-<body>
 
-  <a href="{{ url_for('home') }}" class="back-button" aria-label="Go back to main menu">← Back</a>
+<body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-  <div class="signup-container">
+  <a href="{{ url_for('home') }}" class="profile-back" aria-label="Go back to main menu">← Back</a>
+
+  <div class="signin-container">
     <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="Logo">
     <h2>Create Account</h2>
     <p>Welcome to PocketFreud!</p>
@@ -176,7 +28,9 @@
       {% endif %}
     {% endwith %}
   
-    <form action="/signup" method="post">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+    <form action="{{ url_for('signup') }}"" method="post">
       <div class="input-wrapper">
         <input type="text" name="username" placeholder="Your Name" required>
       </div>
@@ -187,11 +41,16 @@
         <input type="password" id="password" name="password" placeholder="Password" required>
         <span class="toggle-password" onclick="togglePassword()">👁️</span>
       </div>
-      <button type="submit">Sign Up</button>
+      <div class="input-wrapper">
+        <div class="g-recaptcha" data-sitekey="6LdwQCArAAAAANhPdIJ2UxXqmQcAXcWUERPKSDot"></div>
+        <!--div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div-->
+      </div>
+      <button class="btn" type="submit">Sign Up</button>
     </form>
   
-    <div class="footer-link">
-      Already have an account? <a href="/signin">Sign in</a>
+    <div class="signup-link">
+     Aready have an account?
+      <a href="{{ url_for('signin') }}">Sign In</a>
     </div>
   </div>
   

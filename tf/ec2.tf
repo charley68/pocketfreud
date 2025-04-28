@@ -128,9 +128,19 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 
-    location /static/ {
-        root /opt/pocketfreud/;
+    location /test {
+        rewrite ^/test$ / break;
+        proxy_pass http://127.0.0.1:5001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+        # Remove `/test` from the path before passing to Flask
+        rewrite ^/test(/.*)$ $1 break;
     }
+
 }
 EOF
 

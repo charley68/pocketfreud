@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, render_template, session, flash
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import requests
 import random
@@ -7,17 +8,57 @@ import traceback
 import uuid
 import pymysql
 import pymysql.err
+import re
+import requests
+import logging
 
-app = Flask(__name__, static_folder='static')
+
+
+logging.basicConfig(level=logging.INFO)
+
+env = os.getenv("ENV", "prod")
+is_test = env == "test"
+
+EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
+static_path = "/test/static" if is_test else "/static"
+app_root = "/test" if is_test else "/"
+
+app = Flask(
+    __name__,
+    static_folder=os.path.join(os.path.dirname(__file__), 'static'),
+    static_url_path=static_path
+)
+
+# Trust the X-Forwarded-Prefix header from Nginx and generate URLs accordingly. (Allows multi environmemnts)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
+
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
+app.config['BASE_URL'] = app_root
+app.config['APPLICATION_ROOT'] = app_root
+app.config['SESSION_COOKIE_NAME'] = "pocketfreud_test" if env == "test" else "pocketfreud_prod"
+app.config['TEMPLATES_AUTO_RELOAD'] = True # REMOVE THIS IN PROD !!!!!!!!
 
 # Environment-based model selector
 USE_OLLAMA = os.getenv('USE_OLLAMA', 'false').lower() == 'true'
 openai_api_key = os.getenv("OPENAI_API_KEY")
+logging.info(f"[STATIC FOLDER] Flask is serving static files from: {app.static_folder}")
+logging.info(f"[TEMPLATE FOLDER] Flask is serving template files from: {app.template_folder}")
+
+
 
 # -------------------- Helper functions --------------------
 
+@app.context_processor
+def inject_base_url():
+    return dict(BASE_URL=app.config.get('BASE_URL', ''))
+
+@app.context_processor
+def inject_env():
+    return dict(ENV=os.getenv("ENV", "prod"))
+
+
 def get_db_connection():
+
     conn = pymysql.connect(
         host=os.environ['DB_HOST'],
         user=os.environ['DB_USER'],
@@ -28,6 +69,7 @@ def get_db_connection():
     return conn
 
 def init_db():
+
     conn = get_db_connection()
     with conn:
         cursor = conn.cursor()
@@ -65,6 +107,20 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS journals (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                entry_date DATE NOT NULL,
+                entry TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE KEY (user_id, entry_date) 
+            );
+        ''')
+        
         conn.commit()
 
 def save_message_for_user(user_id, sender, message, groupTitle):
@@ -108,6 +164,10 @@ def home():
         return render_template('home.html', username=session.get('username'))
     else:
         return render_template('index.html')
+
+@app.route('/debug')
+def debug_route():
+    return "DEBUG ROUTE OK", 200
 
 @app.route('/about')
 def about():
@@ -181,11 +241,41 @@ def unlabled_message_count():
 
     return jsonify({"count": row["count"]})
 
+def is_valid_email(email):
+    return bool(EMAIL_REGEX.match(email))
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email'].strip().lower()
+        captcha_response = request.form.get("g-recaptcha-response")
+
+        if not is_valid_email(email):
+            flash('Invalid email format. Please enter a valid email address.')
+            return redirect(url_for('signup'))
+        
+        if not captcha_response:
+            flash("Please complete the CAPTCHA.")
+            return redirect(url_for("signup"))
+        
+             # ✅ Verify with Google
+
+        secret_key = os.getenv("RECAPTCHA_SECRET_KEY")
+        verify_url = "https://www.google.com/recaptcha/api/siteverify"
+        payload = {
+            "secret": secret_key,
+            "response": captcha_response,
+            "remoteip": request.remote_addr
+        }
+
+        r = requests.post(verify_url, data=payload)
+        result = r.json()
+
+        if not result.get("success"):
+            flash("CAPTCHA failed. Please try again.")
+            return redirect(url_for("signup"))
+
         password = request.form['password']
 
         conn = get_db_connection()
@@ -225,8 +315,11 @@ def signin():
             return redirect(url_for('signin'))
     return render_template('signin.html')
 
+
+
 @app.route('/chat')
 def chat_load():
+
     if 'user_id' not in session:
         return redirect(url_for('signin'))
 
@@ -258,6 +351,7 @@ def chat_load():
 
 @app.route('/api/chat', methods=['POST'])
 def chat_write():
+
     if 'user_id' not in session:
         print("User not authenticated.")
         return jsonify({'error': 'Unauthorized'}), 401
@@ -369,9 +463,14 @@ def log_mood():
     if user_id:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        mood = data['mood']
+        note = data.get('note', '')
+        timestamp = data['timestamp'].replace('T', ' ').replace('Z', '').split('.')[0]  # ✅ FIX HERE
+
         cursor.execute(
             'INSERT INTO mood_logs (user_id, mood, note, timestamp) VALUES (%s, %s, %s, %s)',
-            (user_id, data['mood'], data['note'], data['timestamp'])
+             (user_id, mood, note, timestamp)
         )
         conn.commit()
         conn.close()
@@ -382,12 +481,14 @@ def log_mood():
 @app.route('/suggestions')
 def suggestions():
     prompts = [
-        "What's a good way to calm anxiety?",
-        "How do I build better habits?",
-        "Why do I feel stuck lately?",
-        "Can you help me practice gratitude?",
-        "What are good ways to improve my mood?",
-        "How can I be more mindful today?"
+        "What's a good way to calm my anxiety?",
+        "I feel stuck lately.",
+        "My partner or kids are driving me crazy!",
+        "I feel overwhelmed with everything today.",
+        "How can I be more mindful today?",
+        "I need to fina a new hobby.",
+        "I feel like I'm not good enough.",
+        "I feel like I'm not being heard."
     ]
     return jsonify(prompts)
 
@@ -425,11 +526,79 @@ def profile():
     return render_template("profile.html", user=user)
 
 
+@app.route('/journal', methods=['GET', 'POST'])
+def journal():
+    if 'user_id' not in session:
+        return redirect(url_for('signin'))
+
+    user_id = session['user_id']
+    date_param = request.args.get('date')
+    month_param = request.args.get('month')
+    year_param = request.args.get('year')
+
+    # If date_param exists, load that specific entry
+    if date_param:
+        date_obj = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
+    else:
+        date_obj = datetime.date.today()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Load journal entry
+    cursor.execute('''
+        SELECT entry FROM journals WHERE user_id = %s AND entry_date = %s
+    ''', (user_id, date_obj))
+    row = cursor.fetchone()
+    journal_text = row['entry'] if row else ''
+
+    conn.close()
+
+    return render_template('journal_entry.html',
+                           journal_text=journal_text,
+                           today=date_obj.strftime("%B %d, %Y"),
+                           back_month=month_param,
+                           back_year=year_param)
+
+
+
+
+
+
+@app.route('/chat')
+def chat():
+    return render_template('chat.html')
+
+@app.route('/journal_calendar')
+def journal_calendar():
+    if 'user_id' not in session:
+        return redirect(url_for('signin'))
+
+    user_id = session['user_id']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT entry_date FROM journals WHERE user_id = %s
+    ''', (user_id,))
+    rows = cursor.fetchall()
+
+    # Build a list of journal entry dates formatted as 'YYYY-MM-DD'
+    journal_dates = [row['entry_date'].strftime('%Y-%m-%d') for row in rows]
+
+    conn.close()
+
+    return render_template('journal_calendar.html', journal_dates=journal_dates)
+
+
+
 
 
 # Initialize database
 init_db()
 
-# Run app
+# # This is only used for local development. In production, use Gunicorn.
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5050)
+
+

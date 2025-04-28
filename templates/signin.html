@@ -3,151 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign In - PocketFreud</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
-      background-size: cover;
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      color: #ffffff;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-      overflow-y: auto;
-    }
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-    .signin-container {
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(8px);
-      padding: 2.5rem 2rem;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 400px;       /* ← desktop max width stays */
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      animation: fadeInUp 0.8s ease-out;
-      transition: transform 0.3s ease;
-    }
-
-
-    h2 {
-      margin-bottom: 1.5rem;
-      font-size: 1.8rem;
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: 0.9rem;
-      margin: 0.5rem 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      box-sizing: border-box;
-    }
-
-    button {
-      width: 100%;
-      padding: 0.9rem;
-      margin-top: 1.2rem;
-      background-color: #7BAFD4;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #6aa3c7;
-    }
-
-    .flash-messages {
-      margin-bottom: 1rem;
-    }
-
-    .flash {
-      background-color: #ff4d4d;
-      padding: 0.7rem;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      color: white;
-    }
-
-    .signup-link {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #cccccc;
-    }
-
-    .signup-link a {
-      color: #7BAFD4;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    .signup-link a:hover {
-      text-decoration: underline;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      display: flex;
-      justify-content: space-around;
-      padding: 0.6rem 0;
-      backdrop-filter: blur(10px);
-      z-index: 999;
-    }
-
-    .back-button {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 0.95rem;
-      z-index: 1000;
-      transition: background 0.2s ease;
-    }
-
-    .back-button:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-
-  </style>
 </head>
 
-<body>
-  <a href="{{ url_for('home') }}" class="back-button" aria-label="Go back to main menu">← Back</a>
+<body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+  <a href="{{ url_for('home') }}" class="profile-back" aria-label="Go back to main menu">← Back</a>
 
   <div class="signin-container">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
-    <p class="tagline">Welcome back to PocketFreud</p>
+    <p class="tagline">Welcome back!</p>
 
     <h2>Sign In</h2>
 
@@ -161,10 +29,10 @@
       {% endif %}
     {% endwith %}
 
-    <form action="/signin" method="post">
+    <form action="{{ url_for('signin') }}" method="post">
       <input type="email" name="email" placeholder="Email Address" required><br>
       <input type="password" name="password" placeholder="Password" required><br>
-      <button type="submit">Sign In</button>
+      <button class="btn" type="submit">Sign In</button>
     </form>
 
     <div class="signup-link">

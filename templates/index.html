@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
   <header class="top-bar">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
@@ -18,7 +18,7 @@
     <nav class="nav-buttons">
       {% if 'username' in session %}
         <span class="greeting">Hello, {{ session['username'] }}!</span>
-        <a class="nav-button" href="{{ url_for('logout') }}">Logout</a>
+        <a class="nav-button" href="{{ url_for('lgout') }}">Logout</a>
       {% else %}
         <a class="nav-button" href="{{ url_for('signin') }}">Sign In</a>
         <a class="nav-button" href="{{ url_for('signup') }}">Sign Up</a>
@@ -32,7 +32,7 @@
     <h2>Talking Helps</h2>
     <p>PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.</p>
     <div class="cta-buttons">
-      <a href="/chat" class="btn primary">Try Demo</a>
+      <a href="{{ url_for('chat') }}" class="btn primary">Try Demo</a>
       <a href="{{ url_for('about') }}" class="btn secondary">Learn More</a>
     </div>
 
@@ -40,7 +40,8 @@
 
       <div class="feature-card">
         <div class="feature-icon">
-          <img src="/static/icons/icon_chat.png" alt="Chat Icon" />
+          <img src="{{ url_for('static', filename='icons/icon_chat.png') }}" alt="Chat Icon" />
+
         </div>
         <div class="feature-text">
           <h3>Private, Empathetic Chat</h3>
@@ -50,7 +51,7 @@
           
       <div class="feature-card">
         <div class="feature-icon">
-          <img src="/static/icons/icon_checkin.png" alt="Check-in Icon" />
+          <img src="{{ url_for('static', filename='icons/icon_checkin.png') }}" alt="Check-in Icon" />
         </div>
         <div class="feature-text">
           <h3>Daily Mental Check-ins</h3>
@@ -60,7 +61,7 @@
 
       <div class="feature-card">
         <div class="feature-icon">
-          <img src="/static/icons/icon_progress.png" alt="Progress Icon">
+          <img src="{{ url_for('static', filename='icons/icon_progress.png') }}" alt="Progress Icon" />
         </div>
         <div class="feature-text">
           <h3>Personal Progress Tools</h3>

@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Let's Talk - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <!--link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"-->
+  <link rel="stylesheet" href="../static/styles.css">
 </head>
-<body>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
     <!-- ✅ Header -->
     <div class="top-bar authenticated">
@@ -20,17 +21,20 @@
       </nav>
     </div>
 
+    
     <div class="chat-header">
-      <h1>Let's Talk
-        <button onclick="openSuggestions()" class="icon-button" title="Get suggestions">
+      <h1 class="chat-title">
+        Let’s Talk
+        <span class="pulse-icon-wrapper" onclick="openSuggestions()" title="Get suggestions">
           <svg class="pulse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 13v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1a7 7 0 0 0-4-13z"/>
           </svg>
-        </button>
+        </span>
       </h1>
     </div>
     
+
 
   <div id="suggestionsModal" class="modal-overlay">
     <div class="modal suggestion-box">
@@ -280,7 +284,7 @@
    
     
   async function promptArchiveBeforeHistory() {
-    const countRes = await fetch('/api/unlabled_message_count');
+    const countRes = await fetch("{{ url_for('unlabled_message_count') }}");
     const { count } = await countRes.json();
 
     if (count <= 1) {
@@ -317,7 +321,7 @@
     tableBody.innerHTML = '';
 
     try {
-      const res = await fetch('/api/chat_history');
+      const res = await fetch("/api/chat_history");
       const data = await res.json();
 
       data.forEach(row => {
@@ -337,7 +341,7 @@
   }
 
   function openSuggestions() {
-  fetch('/suggestions')
+  fetch("{{ url_for('suggestions') }}")
     .then(res => res.json())
     .then(data => {
       const list = document.getElementById('suggestionsList');

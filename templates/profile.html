@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <title>Your Profile - PocketFreud</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body>
+<body class="profile-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
  
     <div class="profile-container">
         <a href="{{ url_for('home') }}" class="profile-back">← Back</a>
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="profile-logo">
+        <!--img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo"-->
      
         <div class="profile-heading-container">
             <h1 class="profile-heading">
@@ -30,7 +31,7 @@
           </div>
           
         <div class="profile-card">
-          <form method="POST" action="{{ url_for('profile') }}">
+          <form method="POST" action="{{ url_for('profile') }}"">
             
             <div class="form-row">
               <label><span class="form-icon">👤</span> Username</label>
@@ -61,11 +62,12 @@
               <label><span class="form-icon">📝</span> Bio</label>
               <textarea name="bio">{{ user.bio or '' }}</textarea>
             </div>
-      
-            <button type="submit" class="menu-button">Save Profile</button>
+
           </form>
         </div>
       </div>
-      
+      <div style="text-align: center; margin-top: 0rem;">
+        <button type="submit" form="profile-form" class="profile-button">Save Profile</button>
+      </div>
 </body>
 </html>

@@ -6,54 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      color: white;
-      background: url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center fixed;
-      background-size: cover;
-      padding: 2rem;
-      line-height: 1.6;
-    }
 
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 2rem;
-      border-radius: 12px;
-      backdrop-filter: blur(8px);
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 2rem;
-    }
-
-    p {
-      font-size: 1.05rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .back-button {
-      display: inline-block;
-      margin-top: 1rem;
-      background-color: #7BAFD4;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    .back-button:hover {
-      background-color: #6aa3c7;
-    }
-  </style>
 </head>
-<body>
+<body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
   <div class="container">
     <h1>Learn More</h1>
     <p><strong>PocketFreud</strong> is your AI companion for emotional support and mental well-being. Whether you're looking for someone to talk to, keep a journal, or reflect on your feelings, PocketFreud is here 24/7 — non-judgmental, private, and always listening.</p>
