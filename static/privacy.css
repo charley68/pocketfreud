@@ -1,0 +1,26 @@
+.privacy-page {
+    background: linear-gradient(to bottom, #2a084a, #495d9c);
+    color: white;
+    font-family: Arial, sans-serif;
+    padding: 2rem 1rem;
+  }
+  
+  .privacy-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    backdrop-filter: blur(3px);
+  }
+  
+  .privacy-container h1, h2 {
+    color: #c7e1f9;
+  }
+  
+  .privacy-container a {
+    color: #7BAFD4;
+    text-decoration: none;
+  }
+  

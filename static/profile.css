@@ -1,0 +1,127 @@
+/* ********************** */
+/* Profile Page Layout */
+/* ********************** */
+
+/* Make the profile container scrollable on small screens */
+
+.profile-body {
+    height: auto;
+    min-height: 100vh;
+    display: block; /* kill off flex behavior */
+    overflow-y: visible;
+  }
+  
+  
+  .profile-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 16px;
+    box-sizing: border-box;
+  
+    /* ✅ Fix these lines */
+    height: auto;          /* No fixed height */
+    min-height: auto;     /* Still fills screen at minimum */
+    overflow-y: visible;   /* Let it grow with content */
+    overflow: visible;
+  
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  
+  
+  .profile-card {
+    width: 100%;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    padding-bottom: 12px;
+  }
+  
+  .form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  
+  }
+  
+  
+  .profile-card label {
+    width: 100px;
+    flex-shrink: 0;
+    font-weight: bold;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  
+  .profile-card input,
+  .profile-card select {
+    width: 100%; /* ← ensures they respect the container */
+    max-width: 100%; /* ← prevents overflow */
+    padding: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  
+  
+  .profile-card textarea {
+    min-height: 140px;  /* Adjust this value to your liking */
+    resize: vertical;   /* Still allows the user to resize */
+  
+    font-size: 1rem;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: -5px;
+  }
+  
+  
+  
+
+  
+  .profile-heading-container:hover .info-popup {
+    display: block;
+  }
+  
+  .info-wrapper {
+    cursor: pointer;
+  }
+  
+  .info-icon {
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  
+  .info-popup {
+    display: none;
+    position: absolute;
+    top: 3.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: #333;
+    padding: 1.4rem 1.6rem;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+    font-size: 1rem;
+    line-height: 1.6;
+    z-index: 100;
+    width: 90vw;
+    max-width: 500px;
+    box-sizing: border-box;
+    text-align: left;
+  }
+  
+  .info-wrapper:hover .info-popup {
+    display: block;
+  }

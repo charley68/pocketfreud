@@ -1,9 +1,11 @@
 .calendar-page {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 1rem 6rem;
-    text-align: center;
-  }
+  max-width: 420px; /* ✅ or whatever you like (not stuck at 900px) */
+  margin: 0 auto;
+  padding: 2rem 1rem 6rem;
+  text-align: center;
+  width: 100%; /* ✅ so it scales nicely on mobile */
+  box-sizing: border-box;
+}
   
   .calendar-header {
     margin-bottom: 1.5rem;

@@ -1,6 +1,6 @@
 /* Combined styles.css for chat.html and welcome.html */
 
-html, body {
+/*html, body {
   margin: 0;
   height: auto;
   min-height: 100%;
@@ -8,8 +8,27 @@ html, body {
   overflow-y: auto;
   font-family: 'Inter', sans-serif;
   color: white;
+}*/
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(to bottom, #2a084a, #495d9c);
+  z-index: -1;
 }
 
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* ✅ Viewport height */
+  margin: 0;
+ /* background: linear-gradient(to bottom, #2a084a, #495d9c);  Your PocketFreud background */
+  font-family: Arial, sans-serif;
+}
 
 body.test-env {
   background: linear-gradient(to bottom, #4e944f, #e4c580);
@@ -52,6 +71,7 @@ body.prod-env {
   align-items: center;
   justify-content: center;
   flex: 1;
+  margin-bottom: 1rem; /* ✅ Add breathing space under "PocketFreud" title */
 }
 
 .nav-buttons, nav {
@@ -100,69 +120,16 @@ nav span {
   background-color: #6aa3c7;
 }
 
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;  /* center content horizontally */
-  position: relative;       /* so we can absolutely place button if needed */
-  padding: 0 1rem;
-  margin-top: 1rem;
-  text-align: center;
-}
 
-.chat-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding-bottom: 120px;
-  overflow: hidden;
-}
-
-#chatBox {
-  flex: 1;
-  width: 95%;
-  max-width: 900px;
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-
-/* CHAT AREA USER INPUT */
-#inputArea {
-  position: fixed;
-  bottom: 60px;
-  width: 90%;
-  max-width: 600px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
-  border-radius: 12px;
-  z-index: 500;
-  box-sizing: border-box;
-  pointer-events: auto;
-}
-
-#userInput {
-  flex: 1 1 auto;       /* allow to shrink and grow */
-  min-width: 0;         /* 🔑 allow it to shrink properly */
-  padding: 0.5rem 0.75rem;
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
   font-size: 1rem;
-  border-radius: 8px;
-  border: none;
-  box-sizing: border-box;
 }
-
 
 
 
@@ -217,204 +184,10 @@ button:hover, .btn:hover {
   font-size: 1.2rem;
 }
 
-.user-message, .bot-message {
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  margin-bottom: 0.5rem;
-  display: block;
-  max-width: 95%;
-  text-align: left;
-  animation: fadeInUp 0.3s ease forwards;
-}
-
-.user-message {
-  background-color: #7BAFD4;
-  color: #fff;
-  align-self: flex-start;
-}
-
-.bot-message {
-  background-color: #6a5acd;
-  color: #fff;
-  align-self: flex-start;
-}
 
 
 
 
-
-.modal {
-  background: white;
-  color: #333;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  text-align: center;
-}
-
-.modal-buttons {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: space-around;
-}
-
-.modal-buttons button {
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  background-color: #7BAFD4;
-  color: white;
-  transition: background-color 0.3s;
-}
-
-.modal-buttons button:hover {
-  background-color: #6aa3c7;
-}
-
-.modal h2 {
-  margin-top: 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-
-
-.chat-header {
-  margin-top: 5px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.chat-header-title {
-  flex-grow: 1;
-  text-align: center;
-}
-
-.chat-header-title h1 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.chat-header-icon {
-  flex-shrink: 0;
-}
-
-.chat-title {
-  position: relative;
-  top: -10px; /* try -2px, -4px, -6px until it looks perfect */
-  margin: 0 auto;
-  font-size: 1.5rem;
-}
-
-#promptIdeasBtn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-.pulse-icon-wrapper {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.4rem;
-}
-
-.pulse-icon {
-  width: 0.8em;
-  height: 0.8em;
-  margin-left: 0.4rem;
-  vertical-align: text-bottom;
-  animation: pulse 2s infinite;
-  position: relative;
-  top: -4px;
-  stroke-width: 1.5;
-  flex-shrink: 0;
-}
-
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    stroke: #fff8b0;  /* Pale yellow */
-  }
-  50% {
-    transform: scale(1.2);
-    stroke: #FFD700;  /* Deeper gold */
-  }
-}
-
-
-
-.pulsing-bulb-icon {
-    background: none;
-    border: none;
-    padding: 0;
-    margin-left: 0.5rem;
-    vertical-align: middle;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-
-
-
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  justify-content: center;
-  align-items: center;
-  z-index: 3000;
-}
-
-.modal-overlay.show {
-  display: flex;
-}
-
-.suggestion-box {
-  background: white;
-  color: #333;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  animation: fadeInUp 0.4s ease;
-  text-align: left;
-}
-
-.suggestion-box h2 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  text-align: center;
-}
-
-#suggestionsList {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 1rem;
-}
-
-#suggestionsList li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-}
-
-#suggestionsList li:hover {
-  background: #f5f5f5;
-}
 
 
 .label-input {
@@ -615,20 +388,28 @@ h2 {
 }
 
 .menu-button {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 1.2rem;
   border-radius: 12px;
-  margin: 1rem auto;
-  width: 300px;
   font-size: 1rem;
+  font-family: inherit;
   color: white;
   text-align: center;
   text-decoration: none;
   font-weight: bold;
   transition: background 0.2s ease;
+  width: 250px;              /* ✅ Force all buttons to same width */
+  margin: 0.5rem auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  appearance: none;
 }
+
+
 
 .menu-button:hover {
   background: rgba(255, 255, 255, 0.2);
@@ -641,245 +422,6 @@ h2 {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ********************** */
-/* Singin/Out Layout */
-/* ********************** */
-
-
-
-.signin-body {
-  margin: 0;
-  color: #ffffff;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-
-
-.signin-container {
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  padding: 2.5rem 2rem;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 400px;       /* ← desktop max width stays */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  animation: fadeInUp 0.8s ease-out;
-  transition: transform 0.3s ease;
-}
-
-.flash-messages {
-  margin-bottom: 1rem;
-}
-
-.flash {
-  background-color: #ff4d4d;
-  padding: 0.7rem;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  color: white;
-}
-
-.signup-link {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #cccccc;
-}
-
-.signup-link a {
-  color: #7BAFD4;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.signup-link a:hover {
-  text-decoration: underline;
-}
-
-input[type="email"],
-input[type="password"] {
-  width: 100%;
-  padding: 0.9rem;
-  margin: 0.5rem 0;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-
-.input-wrapper input,
-.password-wrapper input {
-  width: 100%;
-  padding: 0.7rem;
-  border: none;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-size: 1rem;
-}
-
-.password-wrapper {
-  display: flex;
-  align-items: center;
-}
-
-.password-wrapper input {
-  padding-right: 2.5rem;
-}
-
-.success-box {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 2.5rem;
-  border-radius: 12px;
-  max-width: 500px;
-  width: 100%;
-  animation: fadeIn 0.8s ease-in;
-  box-sizing: border-box;
-}
-
-.success-box h2 {
-  margin-top: 0;
-  font-size: 2rem;
-}
-
-.success-box p {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-}
-
-.success-box a {
-  color: #7BAFD4;
-  font-weight: bold;
-  text-decoration: none;
-  font-size: 1.1rem;
-}
-
-
-
-.toggle-password {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  font-size: 1.1rem;
-  color: #ddd;
-}
-
-
-.g-recaptcha {
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  width: 100%; /* ensures it doesn't shrink */
-  display: flex;
-  justify-content: center; /* center it within form row */
-}
-
-/* ********************** */
-/* Profile Page Layout */
-/* ********************** */
-
-/* Make the profile container scrollable on small screens */
-
-.profile-body {
-  height: auto;
-  min-height: 100vh;
-  display: block; /* kill off flex behavior */
-  overflow-y: visible;
-}
-
-
-.profile-container {
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 16px;
-  box-sizing: border-box;
-
-  /* ✅ Fix these lines */
-  height: auto;          /* No fixed height */
-  min-height: auto;     /* Still fills screen at minimum */
-  overflow-y: visible;   /* Let it grow with content */
-  overflow: visible;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-
-
-.profile-card {
-  width: 100%;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
-  padding-bottom: 12px;
-}
-
-.form-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 14px;
-  width: 100%;
-  box-sizing: border-box;
-
-}
-
-
-.profile-card label {
-  width: 100px;
-  flex-shrink: 0;
-  font-weight: bold;
-  color: #333;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.profile-card input,
-.profile-card select {
-  width: 100%; /* ← ensures they respect the container */
-  max-width: 100%; /* ← prevents overflow */
-  padding: 6px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-
-.profile-card textarea {
-  min-height: 140px;  /* Adjust this value to your liking */
-  resize: vertical;   /* Still allows the user to resize */
-
-  font-size: 1rem;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
-  margin-bottom: -5px;
-}
-
-
-
-.profile-back {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  color: white;
-  font-weight: bold;
-  text-decoration: none;
-  font-size: 1rem;
-}
-
-
 
 .title-with-icon {
   display: inline-flex;
@@ -887,150 +429,85 @@ input[type="password"] {
   gap: 0.6rem;
 }
 
-
-
-.info-wrapper {
-  cursor: pointer;
+/* Modal Overlay */
+.modal {
+  display: none;                /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;                /* ✅ Full viewport height */
+  background-color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
 
-.info-icon {
-  cursor: pointer;
-  vertical-align: middle;
+/* Modal when shown */
+.modal.show {
+  display: flex;                /* ✅ Only apply this when showing */
 }
 
-.info-popup {
-  display: none;
-  position: absolute;
-  top: 3.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+/* Modal Content */
+.modal-content {
   background: white;
-  color: #333;
-  padding: 1.4rem 1.6rem;
-  border-radius: 14px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
-  font-size: 1rem;
-  line-height: 1.6;
-  z-index: 100;
-  width: 90vw;
-  max-width: 500px;
-  box-sizing: border-box;
-  text-align: left;
-}
-
-.info-wrapper:hover .info-popup {
-  display: block;
-}
-
-
-.profile-heading-container:hover .info-popup {
-  display: block;
-}
-
-
-
-
-.g-recaptcha {
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  width: 100%; /* ensures it doesn't shrink */
-  display: flex;
-  justify-content: center; /* center it within form row */
-}
-
-
-
-/* JOURNAL */
-/* === Journal Page Styling === */
-
-/* === Journal Page Styling === */
-
-.journal-page {
-  min-height: 100vh; /* ✅ full screen height at minimum */
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem 1rem 8rem; /* ✅ last value = 8rem bottom padding */
-  box-sizing: border-box; /* ✅ ensure padding is counted properly */
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   text-align: center;
+  max-width: 400px;
+  width: 90%;
 }
 
 
-.journal-logo {
-  width: 70px;
+.modal-content h2 {
+  color: #2A084A; 
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.modal-content button {
+  background-color: #7BAFD4;
+  color: white;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background 0.3s;
+}
+
+.modal-content button:hover {
+  background-color: #649bc2;
+}
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.footer-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #c7e1f9;
+  margin-top: 2rem;
   margin-bottom: 1rem;
 }
 
-.journal-header {
-  margin-top: 0;
-  margin-bottom: 2rem;
+.footer-text a {
+  color: #7BAFD4;
+  text-decoration: none;
 }
 
-.journal-header h1 {
-  font-size: 1.5rem;
-  margin: 0.2rem 0;
-}
-
-.journal-header h2 {
-  font-size: 1.3rem;
-  margin: 0.2rem 0;
-  color: #c7e1f9;
-}
-
-.journal-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.journal-textarea {
-  width: 85%;
-  max-width: 700px;
-  height: 40vh; /* ✅ 40% of the visible screen height */
-  max-height: 60vh; /* ✅ allow some growing but not crazy */
-  padding: 1.5rem;
-  border: 1px solid #7BAFD4;
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 16px;
-  color: white;
-  font-size: 0.9rem;
-  resize: vertical;
-  margin-bottom: 2rem;
-  line-height: 1.6;
-  overflow-y: auto;
-}
-
-
-
-.journal-buttons {
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  margin-top: 1.5rem;
-}
-
-.journal-button {
-  padding: 0.7rem 2rem;
-  font-size: 1.1rem;
-  border-radius: 10px;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.save-button {
-  background-color: #7BAFD4;
-  color: white;
-}
-
-.delete-button {
-  background-color: #e57373;
-  color: white;
+.footer-text a:hover {
+  text-decoration: underline;
 }
 
 
 /* MOBILE */
-
 
 @media (max-width: 768px) {
   /* Index page: branding layout */
@@ -1048,7 +525,7 @@ input[type="password"] {
     align-items: center;
     width: 100%;
 
-    margin-bottom: 0; /* ✅ remove any bottom margin */
+    margin-bottom: 1; /* ✅ remove any bottom margin */
   }
 
   .logo {
@@ -1110,14 +587,16 @@ input[type="password"] {
 
 
   .top-bar.authenticated {
-    position: relative; /* make it a positioned container */
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.8rem 1rem;
-    margin-bottom: -2.5rem; /* ✅ shrink space under the PocketFreud header */
-    padding-bottom: 0.5rem; /* ✅ shrink internal padding */
+    position: relative;         /* ✅ Required for absolute centering */
+    padding-top: 1rem;
+    padding-bottom: 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
+  
   
   .top-bar.authenticated .logo {
     height: 55px;

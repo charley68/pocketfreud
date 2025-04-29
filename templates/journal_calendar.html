@@ -34,10 +34,17 @@
 
 </div>
 
+<!-- Bottom Navigation -->
 <div class="bottom-nav">
-  <div>Chat</div>
-  <div>Mood</div>
-  <div>More</div>
+  <a href="{{ url_for('home') }}"><div><i>🏠</i><div>Home</div></div></a>
+  <a href="{{ url_for('journal') }}"><div><i>📓</i><div>Journal Entry</div></div></a>
+  <div class="more-container">
+    <div class="more-button" onclick="toggleMoreMenu()">
+      <i>⋯</i>
+      <div>More</div>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>

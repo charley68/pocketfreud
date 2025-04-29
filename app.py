@@ -13,7 +13,6 @@ import requests
 import logging
 
 
-
 logging.basicConfig(level=logging.INFO)
 
 env = os.getenv("ENV", "prod")
@@ -97,16 +96,7 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
         ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS mood_logs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                mood VARCHAR(50) NOT NULL,
-                note TEXT,
-                timestamp DATETIME NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            );
-        ''')
+
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS journals (
@@ -114,6 +104,7 @@ def init_db():
                 user_id INT NOT NULL,
                 entry_date DATE NOT NULL,
                 entry TEXT,
+                mood VARCHAR(20),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id),
@@ -457,26 +448,39 @@ def new_chat():
 
 @app.route('/log_mood', methods=['POST'])
 def log_mood():
-    data = request.get_json()
-    user_id = session.get('user_id')
-
-    if user_id:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        mood = data['mood']
-        note = data.get('note', '')
-        timestamp = data['timestamp'].replace('T', ' ').replace('Z', '').split('.')[0]  # ✅ FIX HERE
-
-        cursor.execute(
-            'INSERT INTO mood_logs (user_id, mood, note, timestamp) VALUES (%s, %s, %s, %s)',
-             (user_id, mood, note, timestamp)
-        )
-        conn.commit()
-        conn.close()
-        return '', 204
-    else:
+    if 'user_id' not in session:
         return 'Unauthorized', 401
+
+    user_id = session['user_id']
+    data = request.get_json()
+    mood = data.get('mood')
+
+    if not mood:
+        return 'Invalid data', 400
+
+    today = datetime.date.today()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if today's journal exists
+    cursor.execute('SELECT id FROM journals WHERE user_id = %s AND entry_date = %s', (user_id, today))
+    row = cursor.fetchone()
+
+    if row:
+        # Update existing journal
+        cursor.execute('UPDATE journals SET mood = %s, updated_at = CURRENT_TIMESTAMP WHERE user_id = %s AND entry_date = %s',
+                       (mood, user_id, today))
+    else:
+        # Create new journal entry with mood only
+        cursor.execute('INSERT INTO journals (user_id, entry_date, mood) VALUES (%s, %s, %s)',
+                       (user_id, today, mood))
+
+    conn.commit()
+    conn.close()
+
+    return '', 204
+
     
 @app.route('/suggestions')
 def suggestions():
@@ -526,14 +530,15 @@ def profile():
     return render_template("profile.html", user=user)
 
 
+from flask import redirect, url_for, request
 
 @app.route('/journal', methods=['GET', 'POST'])
 def journal():
+    print("HELLO")
     if 'user_id' not in session:
         return redirect(url_for('signin'))
 
     user_id = session['user_id']
-
     date_param = request.args.get('date') or request.form.get('date')
     if date_param:
         entry_date = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
@@ -543,6 +548,7 @@ def journal():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    print(f"REQUEST METHOD={request.method}")
     if request.method == 'POST':
         journal_text = request.form.get('journalText', '').strip()
 
@@ -553,39 +559,39 @@ def journal():
         ''', (user_id, entry_date, journal_text, journal_text))
 
         conn.commit()
-        flash('Journal entry saved.')
-
-        # ✅ Redirect after save to trigger a new GET request
         conn.close()
-        return redirect(url_for('journal', date=entry_date.strftime("%Y-%m-%d")))
 
-    # 🧠 GET method: fetch the latest journal text
-    cursor.execute('''
-        SELECT entry FROM journals WHERE user_id = %s AND entry_date = %s
-    ''', (user_id, entry_date))
+        # Redirect to the same page with a query parameter indicating a successful save
+        return redirect(url_for('journal', date=entry_date.strftime("%Y-%m-%d"), saved='true'))
+
+    cursor.execute('SELECT entry, mood FROM journals WHERE user_id = %s AND entry_date = %s', (user_id, entry_date))
     row = cursor.fetchone()
 
-    journal_text = row['entry'] if row else ''
+    journal_text = row['entry'] if row and 'entry' in row else ''
+    mood = row['mood'] if row and 'mood' in row else None
 
     conn.close()
 
+    # Determine whether to show the saved modal based on the query parameter
+    show_saved_popup = request.args.get('saved') == 'true'
+
+    print("show_saved_popup", show_saved_popup, flush=True)
     return render_template('journal_entry.html',
                            journal_text=journal_text,
+                           mood=mood,
                            today=entry_date.strftime("%B %d, %Y"),
-                           date_param=entry_date.strftime("%Y-%m-%d"))
-
-
-
-
-
-
-
-
+                           date_param=entry_date.strftime("%Y-%m-%d"),
+                           show_saved_popup=show_saved_popup)
 
 
 @app.route('/chat')
 def chat():
     return render_template('chat.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 
 @app.route('/journal_calendar')
 def journal_calendar():

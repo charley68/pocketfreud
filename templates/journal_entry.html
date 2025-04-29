@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>PocketFreud - Journal Entry</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='journal.css') }}">
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
-
 
     <!-- ✅ Header -->
     <div class="top-bar authenticated">
@@ -19,31 +19,51 @@
           <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
       </nav>
     </div>
+  
+
+    <div class="journal-page">
+
+        <!-- Top Logo and Title -->
+        <div class="journal-header">
+
+            <h1>Journal Entry</h1>
+            <h2>{{ today }}</h2>
+        </div>
+
+        {% if mood %}
+        <div class="journal-mood">
+        <span class="mood-label">Mood:</span>
+        <span class="mood-icon" title="{{ mood }}">
+            {% if mood == 'happy' %} 😊
+            {% elif mood == 'neutral' %} 😐
+            {% elif mood == 'sad' %} 😟
+            {% elif mood == 'anxious' %} 😕
+            {% elif mood == 'angry' %} 😠
+            {% else %} ❓
+            {% endif %}
+        </span>
+        </div>
+        {% endif %}
 
 
+        
+        <!-- New Wrapper for Stretching -->
+        <div class="journal-wrapper">
+        <!-- Journal Form -->
+            <div class="journal-form-container">
+                <form method="POST" action="{{ url_for('journal', date=date_param) }}">
+                    <input type="hidden" name="date" value="{{ date_param }}">
+                    <textarea name="journalText" class="journal-textarea"> {{ journal_text if journal_text else '' }}</textarea>
 
-<div class="journal-page">
-
-    <!-- Top Logo and Title -->
-    <div class="journal-header">
-
-        <h1>Journal Entry</h1>
-        <h2>{{ today }}</h2>
-    </div>
-
-    <!-- Journal Form -->
-    <form method="POST" action="{{ url_for('journal', date=date_param) }}">
-        <input type="hidden" name="date" value="{{ date_param }}">
-            <textarea name="journalText" class="journal-textarea">{{ journal_text }}</textarea>
-
-            <div class="journal-buttons">
-                <button type="submit" class="journal-button save-button">Save</button>
-                <button type="button" class="journal-button delete-button" onclick="clearJournal()">Delete</button>
+                    <div class="journal-buttons">
+                        <button type="submit" class="journal-button save-button">Save</button>
+                        <button type="button" class="journal-button delete-button" onclick="clearJournal()">Delete</button>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>  <!-- end journal-wrapper -->
     </div>
 
-</div>
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">
@@ -58,6 +78,8 @@
   </div>
 </div>
 
+
+
 <!-- Clear Journal Script -->
 <script>
 function clearJournal() {
@@ -65,7 +87,30 @@ function clearJournal() {
         document.querySelector('textarea[name="journalText"]').value = '';
     }
 }
+
+function showSavedModal() {
+  document.getElementById('savedModal').style.display = 'block';
+}
+
+function redirectToHome() {
+  window.location.href = "{{ url_for('home') }}";
+}
+
 </script>
+
+{% if show_saved_popup %}
+<div id="savedModal" class="modal">
+    <div class="modal-content">
+      <h2>Entry Saved</h2>
+      <button onclick="redirectToHome()">Close</button>
+    </div>
+  </div>
+  <script>
+    window.onload = function() {
+      document.getElementById('savedModal').classList.add('show');
+    };
+  </script>
+{% endif %}
 
 </body>
 </html>

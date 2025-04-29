@@ -1,0 +1,127 @@
+/* JOURNAL */
+/* === Journal Page Styling === */
+
+/* === Journal Page Styling === */
+
+.journal-page {
+    width: 100%;
+    max-width: none;
+    padding: 0 0.5rem;
+    margin: 0 auto;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+  }
+  
+  
+  .journal-logo {
+    width: 70px;
+    margin-bottom: 1rem;
+  }
+  
+  .journal-header {
+    text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .journal-header h1 {
+    font-size: 1.5rem;
+    margin: 0.2rem 0;
+  }
+  
+  .journal-header h2 {
+    font-size: 1.3rem;
+    margin: 0.2rem 0;
+    color: #c7e1f9;
+  }
+
+  .journal-wrapper {
+    width: 100%;
+    max-width: none; /* ✅ remove max-width */
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+  }
+  
+  .journal-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .journal-form-container {
+    width: 100%;
+    max-width: 800px; /* or 750px if you prefer tighter */
+    margin: 0 auto;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+  }
+  
+  .journal-textarea {
+    width: 100%;
+    height: 40vh;
+    max-height: 60vh;
+
+    border: 1px solid #7BAFD4;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    color: white;
+    font-size: 0.9rem;
+    resize: vertical;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  
+  
+  
+  .journal-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  
+  .journal-button {
+    padding: 0.7rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .save-button {
+    background-color: #7BAFD4;
+    color: white;
+  }
+  
+  .delete-button {
+    background-color: #e57373;
+    color: white;
+  }
+  
+  .journal-mood {
+    text-align: center;
+
+
+    font-size: 0.95rem;  /* ✅ smaller than default text */
+    color: #c7e1f9;       /* ✅ soft white-blue text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+  
+  .mood-icon {
+    font-size: 1.5rem;
+    cursor: default;
+    display: inline-block;
+  }
+
+  .mood-label {
+    font-weight: 500;
+    font-size: 1rem;
+    color: #c7e1f9;
+  }

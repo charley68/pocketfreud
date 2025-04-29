@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <!--link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"-->
   <link rel="stylesheet" href="../static/styles.css">
+  <link rel="stylesheet" href="../static/chat.css">
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
@@ -25,10 +26,12 @@
     <div class="chat-header">
       <h1 class="chat-title">
         Let’s Talk
-        <span class="pulse-icon-wrapper" onclick="openSuggestions()" title="Get suggestions">
-          <svg class="pulse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        <span class="info-icon-wrapper" onclick="openSuggestions()" title="Get suggestions">
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 13v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1a7 7 0 0 0-4-13z"/>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
         </span>
       </h1>
@@ -37,7 +40,7 @@
 
 
   <div id="suggestionsModal" class="modal-overlay">
-    <div class="modal suggestion-box">
+    <div class="suggestion-box">
       <h2>Need ideas?</h2>
       <ul id="suggestionsList"></ul>
       <div class="modal-buttons">
@@ -71,14 +74,15 @@
 
   <div class="bottom-nav">
     <a href="{{ url_for('home') }}"><div><i>🏠</i><div>Home</div></div></a>
-    <a href="#"><div><i>📓</i><div>Journal</div></div></a>
-    <a href="#"><div><i>📊</i><div>Insights</div></div></a>
-    <div class="more-container">
-      <div class="more-button" onclick="toggleMoreMenu()">
-        <i>⋯</i>
-        <div>More</div>
+
+      <a href="{{ url_for('journal_calendar') }}"><div><i>📓</i><div>Journal</div></div></a>
+      <a href="#"><div><i>📊</i><div>Insights</div></div></a>
+      <div class="more-container">
+        <div class="more-button" onclick="toggleMoreMenu()">
+          <i>⋯</i>
+          <div>More</div>
+        </div>
       </div>
-    </div>
   </div>
 
   <div class="modal-overlay" id="confirmModal">
@@ -94,7 +98,7 @@
   </div>
 
   <div class="modal-overlay" id="historyModal">
-    <div class="modal modal-scroll">
+    <div class="modal">
       <h2>Your Chat History</h2>
       <table id="historyTable">
         <thead>
@@ -284,6 +288,7 @@
    
     
   async function promptArchiveBeforeHistory() {
+    document.getElementById('moreMenu').classList.remove('show');
     const countRes = await fetch("{{ url_for('unlabled_message_count') }}");
     const { count } = await countRes.json();
 

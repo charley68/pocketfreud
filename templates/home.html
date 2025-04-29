@@ -6,6 +6,7 @@
   <title>Home - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
@@ -26,23 +27,37 @@
     <h1>Hi {{ username }}, how are you feeling today?</h1>
 
     <div class="emojis">
-        <span class="emoji-button" onclick="selectMood('happy')">😊</span>
-        <span class="emoji-button" onclick="selectMood('neutral')">😐</span>
-        <span class="emoji-button" onclick="selectMood('sad')">😟</span>
-        <span class="emoji-button" onclick="selectMood('anxious')">😕</span>
-        <span class="emoji-button" onclick="selectMood('angry')">😠</span>
+        <span class="emoji-button" onclick="logMood('happy')">😊</span>
+        <span class="emoji-button" onclick="logtMood('neutral')">😐</span>
+        <span class="emoji-button" onclick="logMood('sad')">😟</span>
+        <span class="emoji-button" onclick="logMood('anxious')">😕</span>
+        <span class="emoji-button" onclick="logMood('angry')">😠</span>
       </div>
       
+          <!-- Happy Mood Modal -->
+    <div id="happyModal" class="modal">
+      <div class="modal-content">
+        <h2>Glad you're feeling good! 🎉</h2>
+        <button onclick="closeHappyModal()">Close</button>
+      </div>
+    </div>
 
-    <form action="{{ url_for('journal') }}" method="get">
-      <button type="submit" class="menu-button">📝 Journal Entry</button>
-    </form>
+    <!-- Sad/Stressed/Tired Mood Modal -->
+    <div id="supportModal" class="modal">
+      <div class="modal-content">
+        <h2>Would you like to talk to PocketFreud?</h2>
+        <button onclick="goToChat()">Chat Now</button>
+        <button onclick="goToJournal()">Write in Journal</button>
+        <button onclick="closeSupportModal()">I'm good thanks !</button>
+      </div>
+    </div>
+
+    <a href="{{ url_for('journal') }}" class="menu-button">📝 Journal Entry</a>
 
     <button class="menu-button" onclick="comingSoon('Goals')">🎯 Today’s Goal</button>
 
-    <form action="{{ url_for('chat') }}" method="get">
-      <button type="submit" class="menu-button">💬 Talk to PocketFreud</button>
-    </form>
+    <a href="{{ url_for('chat') }}" class="menu-button">💬 Talk to PocketFreud</a>
+
   </div>
 
     <!-- ✅ Bottom Nav -->
@@ -86,28 +101,59 @@
       }
     });
 
-    function selectMood(mood) {
-      const note = prompt("Want to add a note about how you're feeling?");
+
+    function logMood(mood) {
       fetch('/log_mood', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mood: mood,
-          note: note || '',
-          timestamp: new Date().toISOString()
-        })
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ mood: mood })
       }).then(response => {
         if (response.ok) {
+          if (mood === 'happy') {
+            showHappyModal();
+          } else {
+            showSupportModal(mood);
+          }
         } else {
-          alert("Failed to save mood.");
+          alert('Something went wrong. Please try again.');
         }
       });
+    }
+
+    // Modal handlers
+    function showHappyModal() {
+      document.getElementById('happyModal').style.display = 'block';
+    }
+
+    function closeHappyModal() {
+      document.getElementById('happyModal').style.display = 'none';
+    }
+
+    function showSupportModal(mood) {
+      const modalTitle = document.querySelector('#supportModal .modal-content h2');
+      const formattedMood = mood.charAt(0).toUpperCase() + mood.slice(1); // Capitalize
+      modalTitle.textContent = `Today you feel ${formattedMood}. Want to talk or write about it?`;
+
+      document.getElementById('supportModal').style.display = 'block';
+    }
+
+    function goToChat() {
+      window.location.href = '/chat';
+    }
+
+    function goToJournal() {
+      window.location.href = '/journal';
     }
 
     function comingSoon(feature) {
         alert(`${feature} is coming soon!`);
     }
 
+    function closeSupportModal() {
+       document.getElementById('supportModal').style.display = 'none';  // ✅ matches how it was shown
+    }
   </script>
   
 

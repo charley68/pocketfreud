@@ -6,11 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
 </head>
 <body class="profile-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
  
     <div class="profile-container">
-        <a href="{{ url_for('home') }}" class="profile-back">← Back</a>
+        <a href="{{ url_for('home') }}" class="back-button">← Back</a>
         <!--img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo"-->
      
         <div class="profile-heading-container">
