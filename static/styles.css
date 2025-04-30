@@ -429,24 +429,7 @@ h2 {
   gap: 0.6rem;
 }
 
-/* Modal Overlay */
-.modal {
-  display: none;                /* Hidden by default */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;                /* ✅ Full viewport height */
-  background-color: rgba(0, 0, 0, 0.6);
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
 
-/* Modal when shown */
-.modal.show {
-  display: flex;                /* ✅ Only apply this when showing */
-}
 
 /* Modal Content */
 .modal-content {

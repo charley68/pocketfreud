@@ -100,16 +100,16 @@ function redirectToHome() {
 
 {% if show_saved_popup %}
 <div id="savedModal" class="modal">
-    <div class="modal-content">
-      <h2>Entry Saved</h2>
-      <button onclick="redirectToHome()">Close</button>
-    </div>
+  <div class="modal-content">
+    <h2>Entry Saved</h2>
+    <button onclick="redirectToHome()">Close</button>
   </div>
-  <script>
-    window.onload = function() {
-      document.getElementById('savedModal').classList.add('show');
-    };
-  </script>
+</div>
+<script>
+  window.onload = function() {
+    document.getElementById('savedModal').classList.add('show');
+  };
+</script>
 {% endif %}
 
 </body>

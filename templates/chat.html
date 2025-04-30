@@ -127,7 +127,7 @@
     let moreJustOpened = false;
 
     function closeModal() {
-      document.getElementById('confirmModal').style.display = 'none';
+      document.getElementById('confirmModal').classList.remove('show');
       pendingRestore = null;
     }
 
@@ -137,7 +137,8 @@
       document.getElementById('modalMessage').textContent = "You can give this chat a label to help find it later. Then we’ll start a fresh one.";
       document.getElementById('confirmModalAction').textContent = 'Save & Start New';
       document.getElementById('confirmModalAction').onclick = confirmNewChat;
-      document.getElementById('confirmModal').style.display = 'flex';
+
+      document.getElementById('confirmModal').classList.add('show');
     }
 
     async function confirmNewChat() {
@@ -177,7 +178,8 @@
           });
           await performRestore(pendingRestore);
         };
-        document.getElementById('confirmModal').style.display = 'flex';
+
+        document.getElementById('confirmModal').classList.add('show');
       }
     }
 
@@ -282,7 +284,7 @@
     });
 
     function closeHistoryModal() {
-      document.getElementById('historyModal').style.display = 'none';
+      document.getElementById('confirmModal').classList.remove('show');
     }
 
    
@@ -316,7 +318,7 @@
       };
 
 
-      document.getElementById('confirmModal').style.display = 'flex';
+      document.getElementById('confirmModal').classList.add('show');
     }
   }
 

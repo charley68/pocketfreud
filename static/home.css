@@ -9,6 +9,14 @@
     background-color: rgba(0,0,0,0.4);
     backdrop-filter: blur(3px);
   }
+
+  .home-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem; /* spacing between buttons */
+    margin-top: 2rem;
+  }
   
   .modal-content {
     background: white;
