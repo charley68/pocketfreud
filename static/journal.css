@@ -142,3 +142,9 @@
   .modal.show {
     display: flex;
   }
+
+  button:disabled,
+.journal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

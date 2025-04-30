@@ -106,3 +106,9 @@
     border: none;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
   }
+
+  button:disabled,
+.journal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

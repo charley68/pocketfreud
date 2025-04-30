@@ -6,8 +6,8 @@
   <title>Let's Talk - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <!--link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"-->
-  <link rel="stylesheet" href="../static/styles.css">
-  <link rel="stylesheet" href="../static/chat.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
@@ -92,12 +92,13 @@
       <input type="text" id="sessionLabel" placeholder="e.g. Anxious Morning" class="label-input">
       <div class="modal-buttons">
         <button id="confirmModalAction">Save & Continue</button>
+        <button onclick="deleteModal()">Delete</button>
         <button onclick="closeModal()">Cancel</button>
       </div>
     </div>
   </div>
 
-  <div class="modal-overlay" id="historyModal">
+  <div class="modal-overlay" id="historyModal"> 
     <div class="modal">
       <h2>Your Chat History</h2>
       <table id="historyTable">
@@ -116,6 +117,18 @@
     </div>
   </div>
 
+  <div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Confirm Deletion</h2>
+      <p>This will delete your current conversation. Are you sure?</p>
+      <div class="modal-buttons">
+        <button onclick="confirmDelete()">Yes, Delete</button>
+        <button onclick="closeDeleteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  
   <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
     <a href="#" onclick="promptArchiveBeforeHistory()">🕓 History</a>
     <a href="{{ url_for('logout') }}">🔓 Logout</a>
@@ -284,7 +297,7 @@
     });
 
     function closeHistoryModal() {
-      document.getElementById('confirmModal').classList.remove('show');
+      document.getElementById('historyModal').classList.remove('show');
     }
 
    
@@ -318,6 +331,7 @@
       };
 
 
+
       document.getElementById('confirmModal').classList.add('show');
     }
   }
@@ -341,7 +355,7 @@
         tableBody.appendChild(tr);
       });
 
-      modal.style.display = 'flex';
+      modal.classList.add('show');
     } catch (err) {
       alert('Failed to load chat history.');
     }
@@ -369,6 +383,33 @@
 function closeSuggestions() {
   document.getElementById('suggestionsModal').classList.remove('show');
 }
+
+function deleteModal() {
+  document.getElementById('deleteConfirmModal').classList.add('show');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteConfirmModal').classList.remove('show');
+}
+
+async function confirmDelete() {
+  closeDeleteModal();
+  closeModal(); // closes the label modal too
+
+  await fetch('/api/delete_chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  chatBox.innerHTML = '';
+  const welcome = document.createElement('div');
+  welcome.className = 'bot-message';
+  welcome.innerHTML = `<strong>PocketFreud:</strong> Hi, how are you feeling today?`;
+  chatBox.appendChild(welcome);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
   </script>
 </body>
 </html>

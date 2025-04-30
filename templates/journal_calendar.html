@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='calendar.css') }}">
 </head>
-<body class="prod-env">
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
 <div class="calendar-page">
 

@@ -291,14 +291,23 @@ def signin():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT id, username FROM users WHERE email = %s AND password = %s',
-                        (email, password))
-        user = cursor.fetchone()
+        
+        cursor.execute('SELECT id, username, age, sex, bio FROM users WHERE email = %s AND password = %s',(email, password))
+        profile = cursor.fetchone()
         conn.close()
 
-        if user:
-            session['user_id'] = user['id']
-            session['username'] = user['username']
+        print(f"email: {email}")
+        print(f"password: {password}")
+        print(f"Profile = {profile}")
+        if profile:
+            session['user_id'] = profile['id']
+            session['username'] = profile['username'] 
+            session['user_profile'] = {
+                'username': profile['username'],
+                'age': profile['age'],
+                'sex': profile['sex'],
+                'bio': profile['bio']
+            }   
             flash('Login successful!')
             return redirect(url_for('home'))
         else:
@@ -340,6 +349,17 @@ def chat_load():
     return render_template('chat.html', messages=messages, username=session.get('username'), groupTitle=groupTitle)
 
 
+@app.route('/light_chat')
+def light_chat():
+    return render_template('chat.html', save_mode=False, demo_mode=False)
+
+@app.route('/demo_chat')
+def demo_chat():
+    return render_template('chat.html', save_mode=False, demo_mode=True)
+
+
+
+
 @app.route('/api/chat', methods=['POST'])
 def chat_write():
 
@@ -365,6 +385,21 @@ def chat_write():
         "role": "system",
         "content": "You are PocketFreud, a gentle, empathetic AI who helps users reflect on their emotions and feel supported. You speak in a calming, non-judgmental tone."
     }]
+
+    profile = session.get('user_profile')
+    if profile:
+        intro = f"My name is {profile['username']}."
+        if profile.get('age'):
+            intro += f" I am {profile['age']} years old."
+        if profile.get('sex'):
+            intro += f" I am {profile['sex'].lower()}."
+        if profile.get('bio'):
+            intro += f" A bit about me: {profile['bio']}"
+    
+    conv_history.append({
+        "role": "system",
+        "content": intro
+    })
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -512,6 +547,13 @@ def profile():
         occupation = request.form.get("occupation")
         bio = request.form.get("bio")
 
+        session['user_profile'] = {
+            'username': username,
+            'age': age,
+            'sex': sex,
+            'bio': bio
+        }
+
         cursor.execute("""
             UPDATE users
             SET username = %s, age = %s, sex = %s, occupation = %s, bio = %s
@@ -529,12 +571,22 @@ def profile():
 
     return render_template("profile.html", user=user)
 
+@app.route('/api/delete_chat', methods=['POST'])
+def delete_chat():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
 
-from flask import redirect, url_for, request
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM conversations WHERE user_id = %s AND archive = 0', (session['user_id'],))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'deleted'})
+
 
 @app.route('/journal', methods=['GET', 'POST'])
 def journal():
-    print("HELLO")
+
     if 'user_id' not in session:
         return redirect(url_for('signin'))
 

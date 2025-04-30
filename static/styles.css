@@ -16,10 +16,18 @@ body::before {
   left: 0;
   width: 100%;
   height: 100vh;
-  background: linear-gradient(to bottom, #2a084a, #495d9c);
   z-index: -1;
 }
 
+
+/* Separate background themes for each environment */
+body.test-env::before {
+  background: linear-gradient(to bottom, #4e944f, #e4c580);
+}
+
+body.prod-env::before {
+  background: linear-gradient(to bottom, #2a084a, #5f90b5);
+}
 
 body {
   display: flex;
@@ -415,7 +423,11 @@ h2 {
   background: rgba(255, 255, 255, 0.2);
 }
 
-
+.menu-button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
@@ -477,10 +489,10 @@ h2 {
   font-size: 0.9rem;
   color: #c7e1f9;
   margin-top: 2rem;
-  margin-bottom: 1rem;
 }
 
 .footer-text a {
+  margin-top: 0rem;  /* was 2rem */
   color: #7BAFD4;
   text-decoration: none;
 }
@@ -531,6 +543,12 @@ h2 {
     align-items: center;
     gap: 0.6rem;
     margin-bottom: 1rem;
+  }
+
+  .nav-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
   }
 
   .nav-button {
