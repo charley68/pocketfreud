@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Demo Mode - PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='demo.css') }}">
+
+</head>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+  <!-- 🔹 Top Bar with Sign Up -->
+  <div class="top-bar authenticated">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
+    <nav class="nav-buttons">
+      <a class="logout-button" href="{{ url_for('signup') }}">Sign Up</a>
+    </nav>
+  </div>
+
+  <!-- 🔹 Chatbot Type Selector -->
+<!-- 🔹 Centered Title and Chat Mode Dropdown -->
+<div class="chat-header stacked">
+    <h2 class="chat-title">
+      Try Me
+      <span class="info-icon-wrapper" onclick="openDemoInfo()" title="About Demo Mode">
+        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </span>
+    </h2>
+  
+    <!--div class="chat-mode-row">
+      <label for="botTypeSelector">Chat Mode:</label>
+      <select id="botTypeSelector">
+        <option value="Compassionate Counsellor">Compassionate Counsellor</option>
+        <option value="Lonely Companion">Lonely Companion</option>
+        <option value="Motivational Coach">Motivational Coach</option>
+      </select>
+    </div-->
+  </div>
+  
+  
+
+  <div class="chat-wrapper">
+    <div id="chatBox">
+      <div class="bot-message">
+        <strong>PocketFreud:</strong> Hi there. I'm here to listen. What's on your mind?
+      </div>
+    </div>
+
+    <div id="inputArea" class="input-area">
+      <div class="input-row"> <!-- Adjusted width -->
+        <input type="text" id="userInput" placeholder="Type something...">
+      </div>
+      <div class="button-row">
+        <button onclick="sendDemoMessage()" class="icon-button">
+          <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
+        </button>
+        <button id="speechToggleBtn" onclick="toggleSpeech()" class="icon-button" title="Toggle Speech">
+          <img src="{{ url_for('static', filename='icons/speaking.png') }}" alt="Speech" class="icon">
+        </button>
+        <button id="recordButton" class="icon-button" title="Hold to Record">
+          <img src="{{ url_for('static', filename='icons/microphone.png') }}" alt="Record" class="icon">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="demoInfoModal" class="modal-overlay">
+    <div class="modal">
+      <h2>About Demo Mode</h2>
+      <p>This is a limited preview of PocketFreud:</p>
+      <ul style="text-align: left; margin-top: 1rem;">
+        <li>🔒 No data is saved or stored</li>
+        <li>💬 Limited messages</li>
+        <li>🧠 No personalized experience</li>
+      </ul>
+      <p style="margin-top: 1rem;">Sign up to unlock full journaling, insights, and support features.</p>
+      <div class="modal-buttons">
+        <button onclick="closeDemoInfo()">Got it</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const chatBox = document.getElementById("chatBox");
+    //const botTypeSelector = document.getElementById("botTypeSelector");
+    let demoMessages = [];
+    const DEMO_LIMIT = 12;
+
+    let availableVoices = [];
+
+    function loadVoices() {
+      availableVoices = speechSynthesis.getVoices();
+      if (availableVoices.length === 0) {
+        speechSynthesis.addEventListener("voiceschanged", () => {
+          availableVoices = speechSynthesis.getVoices();
+        });
+      }
+    }
+
+    loadVoices();
+
+    function openDemoInfo() {
+        document.getElementById('demoInfoModal').classList.add('show');
+    }
+
+    function closeDemoInfo() {
+        document.getElementById('demoInfoModal').classList.remove('show');
+    }
+
+    function sendDemoMessage() {
+      const input = document.getElementById("userInput");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      if (demoMessages.length >= DEMO_LIMIT) {
+        const lockMsg = document.createElement("div");
+        lockMsg.className = "bot-message";
+        lockMsg.innerHTML = `<strong>PocketFreud:</strong> You've reached the demo limit. <a href='/signup'>Sign up</a> to continue!`;
+        chatBox.appendChild(lockMsg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+      }
+
+      // User message
+      const userMsg = document.createElement("div");
+      userMsg.className = "user-message";
+      userMsg.innerHTML = `<strong>You:</strong> ${userText}`;
+      chatBox.appendChild(userMsg);
+
+      demoMessages.push({ role: "user", content: userText });
+
+      const typing = document.createElement("div");
+      typing.className = "bot-message";
+      typing.innerHTML = `<em>PocketFreud is typing...</em>`;
+      chatBox.appendChild(typing);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      fetch("/api/demo_chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: demoMessages
+          //personality: botTypeSelector.value
+        })
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (typing.parentNode) {
+            chatBox.removeChild(typing);
+          }
+          const botMsg = document.createElement("div");
+          botMsg.className = "bot-message";
+          botMsg.innerHTML = `<strong>PocketFreud:</strong> ${data.response}`;
+          chatBox.appendChild(botMsg);
+          speakText(data.response, botMsg);
+
+          demoMessages.push({ role: "assistant", content: data.response });
+          input.value = "";
+          chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch((err) => {
+          if (typing.parentNode) {
+            chatBox.removeChild(typing);
+          }
+          const errMsg = document.createElement("div");
+          errMsg.className = "bot-message";
+          errMsg.innerHTML = `<strong>Error:</strong> ${err.message}`;
+          chatBox.appendChild(errMsg);
+        });
+    }
+
+    document.getElementById("userInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendDemoMessage();
+      }
+    });
+
+
+    let speechEnabled = false;
+    function toggleSpeech() {
+      speechEnabled = !speechEnabled;
+
+      const btn = document.getElementById("speechToggleBtn");
+      const icon = btn.querySelector("img");
+      const statusMessage = speechEnabled ? "Speech Enabled" : "Speech Disabled";
+
+      if (speechEnabled) {
+        btn.classList.add("active");
+        icon.src = "{{ url_for('static', filename='icons/speaking.png') }}"; // Active icon
+        btn.setAttribute("aria-label", statusMessage);
+      } else {
+        btn.classList.remove("active");
+        icon.src = "{{ url_for('static', filename='icons/speaking.png') }}"; // Default icon
+        btn.setAttribute("aria-label", statusMessage);
+      }
+
+      // Speak the status message
+      const utterance = new SpeechSynthesisUtterance(statusMessage);
+      speechSynthesis.speak(utterance);
+    }
+
+    function speakText(text) {
+        if (!speechEnabled) 
+            return;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        const selectedIndex = document.getElementById("voiceSelect")?.value;
+        if (availableVoices[selectedIndex]) {
+          utterance.voice = availableVoices[selectedIndex];
+        }
+        speechSynthesis.speak(utterance);
+    }
+
+    let recognition; // Declare recognition globally to manage its lifecycle
+    let isRecording = false; // Track recording state for desktop toggle
+
+    function initializeSpeechRecognition() {
+      if (recognition) {
+        return recognition; // Reuse the existing recognition instance
+      }
+
+      try {
+        const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+
+        if (!isSpeechRecognitionSupported) {
+          console.warn("Speech recognition is not supported in this browser.");
+          alert("Speech recognition is not supported on your device or browser. Please try using a different browser.");
+          return null;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition(); // Initialize and assign to the global variable
+
+        recognition.lang = 'en-US'; // Set the language
+        recognition.interimResults = false; // Enable interim results for real-time feedback
+        recognition.continuous = true; // Enable continuous recognition
+
+        recognition.onresult = (event) => {
+          const inputField = document.getElementById("userInput");
+          let transcript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript; // Combine both interim and final results
+          }
+
+          inputField.value += transcript.trim() + ". "; // Update the input field in real-time
+          console.log("Transcript:", inputField.value);
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+          alert("An error occurred during speech recognition: " + event.error);
+        };
+
+        console.log("Speech recognition initialized successfully.");
+        return recognition;
+      } catch (error) {
+        console.error("Error initializing speech recognition:", error);
+        alert("An unexpected error occurred while initializing speech recognition.");
+        return null;
+      }
+    }
+
+    function toggleRecording() {
+      if (!recognition) {
+        if (!initializeSpeechRecognition()) {
+          return; // Prevent further execution if initialization fails
+        }
+      }
+
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+
+    function startRecording() {
+      if (!recognition) {
+        alert("Speech recognition is not initialized or supported in this browser.");
+        return;
+      }
+      recognition.start();
+      isRecording = true;
+      console.log("Voice recognition started...");
+    }
+
+    function stopRecording() {
+      if (!recognition || !isRecording) { // Ensure stopRecording is only called when recording is active
+        return;
+      }
+      recognition.stop();
+      isRecording = false;
+      console.log("Voice recognition stopped.");
+    }
+
+    // Detect device type and adjust behavior
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    const recordButton = document.getElementById("recordButton");
+
+    if (isMobile) {
+      // Mobile: Press and hold behavior
+      recordButton.addEventListener("mousedown", startRecording);
+      recordButton.addEventListener("mouseup", stopRecording);
+      recordButton.addEventListener("mouseleave", stopRecording); // Stop if the cursor leaves the button
+    } else {
+      // Desktop: Toggle behavior
+      recordButton.addEventListener("click", toggleRecording);
+    }
+  </script>
+</body>
+</html>

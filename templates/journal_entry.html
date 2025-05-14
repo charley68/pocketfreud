@@ -78,38 +78,61 @@
   </div>
 </div>
 
+<!-- COnfirm Delete -->
+<div id="confirmDeleteModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Are you sure you want to delete this journal entry?</h2>
+      <div class="modal-buttons">
+        <button onclick="confirmDelete()">Yes, Delete</button>
+        <button onclick="closeAllModals()">No, Cancel</button>
+      </div>
+    </div>
+  </div>
 
 
 <!-- Clear Journal Script -->
 <script>
 function clearJournal() {
-    if (confirm('Clear this journal entry?')) {
-        document.querySelector('textarea[name="journalText"]').value = '';
-    }
+    document.getElementById('confirmDeleteModal').classList.add('show');
 }
 
 function showSavedModal() {
-  document.getElementById('savedModal').style.display = 'block';
+    document.getElementById('confirmDeleteModal').classList.add('show');
 }
 
 function redirectToHome() {
   window.location.href = "{{ url_for('home') }}";
 }
 
+function confirmDelete() {
+  fetch('{{ url_for("delete_journal", date=date_param) }}', {
+    method: 'POST'
+  }).then(response => {
+    if (response.ok) {
+      window.location.href = "{{ url_for('journal_calendar') }}";
+    } else {
+      alert('Failed to delete journal entry.');
+    }
+  });
+}
+
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.classList.remove('show');
+  });
+}
+
 </script>
 
 {% if show_saved_popup %}
-<div id="savedModal" class="modal">
-  <div class="modal-content">
+<div class="modal-overlay show" id="savedModal">
+  <div class="modal">
     <h2>Entry Saved</h2>
-    <button onclick="redirectToHome()">Close</button>
+    <div class="modal-buttons">
+      <button onclick="redirectToHome()">Close</button>
+    </div>
   </div>
 </div>
-<script>
-  window.onload = function() {
-    document.getElementById('savedModal').classList.add('show');
-  };
-</script>
 {% endif %}
 
 </body>

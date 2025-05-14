@@ -169,62 +169,6 @@
   }
   
   
-  
-
-  
-.modal {
-    background: white;
-    color: #333;
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    max-width: 400px;
-    text-align: center;
-  }
-  
-  .modal-buttons {
-    margin-top: 1.5rem;
-    display: flex;
-    justify-content: space-around;
-  }
-  
-  .modal-buttons button {
-    padding: 0.5rem 1.2rem;
-    border-radius: 8px;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    background-color: #7BAFD4;
-    color: white;
-    transition: background-color 0.3s;
-  }
-  
-  .modal-buttons button:hover {
-    background-color: #6aa3c7;
-  }
-  
-  .modal h2 {
-    margin-top: 0;
-    font-size: 1.5rem;
-    color: #333;
-  }
-  
-  
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    justify-content: center;
-    align-items: center;
-    z-index: 3000;
-  }
-  
-  .modal-overlay.show {
-    display: flex;
-  }
-  
   .suggestion-box {
     background: white;
     color: #333;

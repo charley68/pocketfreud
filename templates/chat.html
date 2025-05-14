@@ -5,9 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Let's Talk - PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <!--link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"-->
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='chat.css') }}">
+  <style>
+    .chat-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 150px); /* Adjust height to fit within the viewport */
+    }
+
+    #chatBox {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px; /* Add padding for better spacing */
+      margin-bottom: 0; /* Remove margin to avoid overlap */
+      box-sizing: border-box; /* Ensure padding is included in height calculation */
+    }
+
+    #inputArea {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+      background-color: #f9f9f9;
+      flex-shrink: 0; /* Prevent shrinking of inputArea */
+    }
+
+    #userInput {
+      flex: 1;
+      padding: 10px; /* Increase padding for better usability */
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px; /* Ensure text is readable */
+    }
+
+    #newChatBtn,
+    #inputArea button {
+      padding: 10px 16px; /* Adjust padding for consistency */
+      border: none;
+      background-color: #6200ea;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #newChatBtn:hover,
+    #inputArea button:hover {
+      background-color: #3700b3;
+    }
+  </style>
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 

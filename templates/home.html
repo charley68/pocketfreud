@@ -8,8 +8,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 </head>
-<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
   <!-- ✅ Header -->
   <div class="top-bar authenticated">
@@ -34,23 +34,26 @@
         <span class="emoji-button" onclick="logMood('angry')">😠</span>
       </div>
       
-          <!-- Happy Mood Modal -->
-    <div id="happyModal" class="modal">
-      <div class="modal-content">
-        <h2>Glad you're feeling good! 🎉</h2>
-        <button onclick="closeHappyModal()">Close</button>
+      <div id="happyModal" class="modal-overlay">
+        <div class="modal">
+          <h2>Glad you're feeling good! 🎉</h2>
+          <div class="modal-buttons">
+            <button onclick="closeHappyModal()">Close</button>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <!-- Sad/Stressed/Tired Mood Modal -->
-    <div id="supportModal" class="modal">
-      <div class="modal-content">
-        <h2>Would you like to talk to PocketFreud?</h2>
-        <button onclick="goToChat()">Chat Now</button>
-        <button onclick="goToJournal()">Write in Journal</button>
-        <button onclick="closeSupportModal()">I'm good thanks !</button>
+      
+      <div id="supportModal" class="modal-overlay">
+        <div class="modal">
+          <h2>Would you like to talk to PocketFreud?</h2>
+          <div class="modal-buttons">
+            <button onclick="goToChat()">Chat Now</button>
+            <button onclick="goToJournal()">Write in Journal</button>
+            <button onclick="closeSupportModal()">I'm good thanks!</button>
+          </div>
+        </div>
       </div>
-    </div>
+      
 
     <div class="home-buttons">
       <a href="{{ url_for('journal') }}" class="menu-button">📝 Journal Entry</a>
@@ -124,19 +127,20 @@
 
     // Modal handlers
     function showHappyModal() {
-      document.getElementById('happyModal').style.display = 'block';
+      document.getElementById('supportModal').classList.add('show');
     }
 
     function closeHappyModal() {
-      document.getElementById('happyModal').style.display = 'none';
+      document.getElementById('supportModal').classList.remove('show');
     }
 
     function showSupportModal(mood) {
-      const modalTitle = document.querySelector('#supportModal .modal-content h2');
+
+      const modalTitle = document.querySelector('#supportModal .modal h2');
       const formattedMood = mood.charAt(0).toUpperCase() + mood.slice(1); // Capitalize
       modalTitle.textContent = `Today you feel ${formattedMood}. Want to talk or write about it?`;
 
-      document.getElementById('supportModal').style.display = 'block';
+      document.getElementById('supportModal').classList.add('show');
     }
 
     function goToChat() {
@@ -152,7 +156,7 @@
     }
 
     function closeSupportModal() {
-       document.getElementById('supportModal').style.display = 'none';  // ✅ matches how it was shown
+       document.getElementById('supportModal').classList.remove('show'); // ✅ matches how it was shown
     }
   </script>
   
