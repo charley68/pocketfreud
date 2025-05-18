@@ -6,7 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='learn_more.css') }}">
+  <style>
+    .learn-container {
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.08));
+      border-radius: 18px;
+      padding: 2rem 1.5rem;
+      margin: 2rem 1rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      color: #f5faff;
+      text-align: left;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      backdrop-filter: blur(4px);
+    }
+
+    .learn-title {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+
+    .learn-container p {
+      font-size: 1.15rem;
+      line-height: 1.65;
+      margin-bottom: 1.2rem;
+      color: #e8f1f9;
+    }
+
+    .learn-container strong {
+      color: white;
+    }
+
+    .footer-text {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #c7e1f9;
+      margin: 2rem 0;
+    }
+
+    .footer-text a {
+      color: #7BAFD4;
+      text-decoration: none;
+    }
+
+    .footer-text a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .learn-container {
+        padding: 1.5rem 1rem;
+      }
+
+      .learn-title {
+        font-size: 1.6rem;
+      }
+
+      .learn-container p {
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
 
 <body class="prod-env learn-page">
@@ -24,14 +87,13 @@
 
   <!-- ✅ Main Content -->
   <div class="learn-container">
-    <h1 class="learn-title">Learn More</h1>
+    <h2 class="learn-title">💡 Learn More</h2>
 
     <p><strong>PocketFreud</strong> is your AI companion for emotional support and mental well-being. Whether you're looking for someone to talk to, keep a journal, or reflect on your feelings, PocketFreud is here 24/7 — non-judgmental, private, and always listening.</p>
 
     <p>Use it daily to track your mood, express your thoughts, or simply vent in a safe, supportive space. You can revisit your previous chats, set goals for emotional growth, or just check in with how you're feeling each day.</p>
 
-    <p><strong>No diagnosis. No pressure.</strong> Just a helpful companion to make life's mental load feel a little lighter.</p>
-
+    <p><strong>No diagnosis. No pressure.</strong> Just a helpful companion to make life’s mental load feel a little lighter.</p>
   </div>
 
   <!-- ✅ Footer -->

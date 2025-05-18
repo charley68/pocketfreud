@@ -51,6 +51,17 @@ def init_db():
                 UNIQUE KEY (user_id, entry_date)
             );
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_tokens (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                token_month VARCHAR(6) NOT NULL,     -- e.g. '0525' for May 2025
+                month_tokens INT DEFAULT 0,
+                UNIQUE KEY unique_user_month (user_id, token_month)
+            );
+        ''')
+
         conn.commit()
 
 def save_message_for_user(user_id, sender, message, groupTitle):

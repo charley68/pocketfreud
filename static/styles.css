@@ -15,7 +15,7 @@ body::before {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   z-index: -1;
 }
 
@@ -29,13 +29,10 @@ body.prod-env::before {
   background: linear-gradient(to bottom, #2a084a, #5f90b5);
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* ✅ Viewport height */
+html, body {
+  height: 100%;
   margin: 0;
- /* background: linear-gradient(to bottom, #2a084a, #495d9c);  Your PocketFreud background */
-  font-family: Arial, sans-serif;
+  padding: 0;
 }
 
 body.test-env {
@@ -487,20 +484,24 @@ h2 {
 }
 
 .modal-buttons {
-  margin-top: 1.5rem;
   display: flex;
-  justify-content: space-around;
+  flex-direction: row;      /* ✅ horizontal layout */
+  justify-content: center;  /* ✅ center buttons as a group */
+  gap: 1rem;                /* ✅ space between them */
+  margin-top: 1.5rem;
 }
 
+
 .modal-buttons button {
-  padding: 0.5rem 1.2rem;
-  border-radius: 8px;
+  padding: 0.75rem 1.2rem;
   border: none;
-  font-weight: bold;
-  cursor: pointer;
-  background-color: #7BAFD4;
+  background: #7BAFD4;
   color: white;
-  transition: background-color 0.3s;
+  font-size: 1rem;
+  border-radius: 8px;
+  min-width: 120px;  /* 👈 Makes buttons uniform */
+  text-align: center;
+  cursor: pointer;
 }
 
 .modal-buttons button:hover {
@@ -574,7 +575,7 @@ body.prod-env .modal {
   font-size: 0.95rem;
 }
 
-/* Themed button colors */
+/* Themed button colors 
 body.test-env .modal button {
   background-color: #4e944f;
   color: white;
@@ -583,7 +584,7 @@ body.test-env .modal button {
 body.prod-env .modal button {
   background-color: #2a084a;
   color: white;
-}
+}*/
 
 
 /* MOBILE */
@@ -607,9 +608,6 @@ body.prod-env .modal button {
     text-align: center;
   }
 
-  .branding {
-    background: rgba(255, 255, 0, 0.3);  /* test background */
-  }
 
   .app-title {
     font-size: 2.2rem;
@@ -732,8 +730,18 @@ body.prod-env .modal button {
 .input-area {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 0; /* Remove unnecessary margin */
+  gap: 0.4rem;           /* 🔽 Reduce vertical gap */
+  padding: 0.6rem 1rem;  /* 🔽 Less padding overall */
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.input-row {
+  margin-bottom: 0.2rem;  /* 🔽 Tighten space between input and buttons */
 }
 
 #userInput {
@@ -746,8 +754,9 @@ body.prod-env .modal button {
 
 .button-row {
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 0;   /* 🔽 Remove extra space under buttons */
 }
 
 .icon-button {
@@ -766,6 +775,15 @@ body.prod-env .modal button {
 
 .icon-button:active {
   animation: pulse 0.2s ease;
+}
+
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* spacing between buttons */
+  align-items: center; /* center buttons horizontally */
+  margin-top: 2rem;
 }
 
 @keyframes pulse {

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PocketFreud Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='bot-chat.css') }}">
+</head>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+  <div class="top-bar authenticated">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
+    <nav class="nav-buttons">
+      {% if is_demo %}
+      <a class="logout-button" href="{{ url_for('signup') }}">Sign Up</a>
+      {% else %}
+      <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
+      {% endif %}
+    </nav>
+  </div>
+
+  <main>
+    <div class="chat-header stacked">
+      <h2 class="chat-title">
+        {% if is_demo %}
+          Try Me
+          <span class="info-icon-wrapper" onclick="openDemoInfo()" title="About Demo Mode">
+        {% else %}
+          Let's Talk
+          <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">
+        {% endif %}
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </span>
+      </h2>
+    </div>
+
+    <div class="chat-wrapper">
+      <div id="chatBox">
+        {% if is_demo %}
+          <div class="bot-message">
+            <strong>PocketFreud:</strong> Hi there. I'm here to listen. What's on your mind?
+          </div>
+        {% elif messages %}
+          {% for msg in messages %}
+            <div class="{{ 'user-message' if msg['sender'] == 'user' else 'bot-message' }}">
+              <strong>{{ 'You' if msg['sender'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="bot-message">
+            <strong>PocketFreud:</strong> Hi {{ username }}. How are you feeling today?
+          </div>
+        {% endif %}
+      </div>
+
+      <div id="inputArea" class="input-area">
+        <div class="input-row">
+          <input type="text" id="userInput" placeholder="Type something...">
+        </div>
+        <div class="button-row">
+
+          {% if not is_demo %}
+          <button onclick="startNewChat()" class="icon-button">
+            <img src="{{ url_for('static', filename='icons/add-file.png') }}" alt="New" class="icon">
+          </button>
+          {% endif %}
+
+          <button onclick="sendChatMessage()" class="icon-button">
+            <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
+          </button>
+          <button id="speechToggleBtn" onclick="toggleSpeech()" class="icon-button" title="Toggle Speech">
+            <img src="{{ url_for('static', filename='icons/speaking.png') }}" alt="Speech" class="icon">
+          </button>
+          <button id="recordButton" class="icon-button" title="Hold to Record">
+            <img src="{{ url_for('static', filename='icons/microphone.png') }}" alt="Record" class="icon">
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="bottom-nav">
+    <a href="{{ url_for('home') }}">
+      <div><i>🏠</i><div>Home</div></div>
+    </a>
+    {% if not is_demo %}
+    <a href="{{ url_for('journal_calendar') }}">
+      <div><i>📓</i><div>Journal</div></div>
+    </a>
+    <a href="#">
+      <div><i>📊</i><div>Insights</div></div>
+    </a>
+    <div class="more-container">
+      <div class="more-button" onclick="toggleMoreMenu()">
+        <i>⋯</i>
+        <div>More</div>
+      </div>
+    </div>
+    {% else %}
+    <a href="#" class="nav-disabled">
+      <div><i>📓</i><div>Journal</div></div>
+    </a>
+    <a href="#" class="nav-disabled">
+      <div><i>📊</i><div>Insights</div></div>
+    </a>
+    <div class="more-container nav-disabled">
+      <div class="more-button">
+        <i>⋯</i>
+        <div>More</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if is_demo %}
+  <div id="demoInfoModal" class="modal-overlay">
+    <div class="modal">
+      <h2>About Demo Mode</h2>
+      <p>This is a limited preview of PocketFreud:</p>
+      <ul style="text-align: left; margin-top: 1rem;">
+        <li>🔒 No data is saved or stored</li>
+        <li>💬 Limited messages</li>
+        <li>🧠 No personalized experience</li>
+      </ul>
+      <div class="modal-buttons">
+        <button onclick="closeDemoInfo()">Got it</button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div id="suggestionsModal" class="modal-overlay">
+    <div class="suggestion-box">
+      <h2>Need ideas?</h2>
+      <ul id="suggestionsList"></ul>
+      <div class="modal-buttons">
+        <button onclick="closeSuggestions()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <h2 id="modalTitle">End This Session?</h2>
+      <p id="modalMessage">You can give this chat a label to help find it later. Then we’ll start a fresh one.</p>
+      <input type="text" id="sessionLabel" placeholder="e.g. Anxious Morning" class="label-input">
+      <div class="modal-buttons">
+        <button id="confirmModalAction">Save & Continue</button>
+        <button onclick="deleteModal()">Delete</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="historyModal"> 
+    <div class="modal">
+      <h2>Your Chat History</h2>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>Date</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="modal-buttons">
+        <button onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="aboutModal" class="modal-overlay">
+    <div class="modal">
+      <h2>About You</h2>
+      <p>Hello <strong>{{ username }}</strong>, welcome to PocketFreud.</p>
+      <p>This app is your private emotional support space — available 24/7 just for you.</p>
+      <p><strong>This month's token usage:</strong> <span id="tokenCount">Loading...</span></p>
+      <div class="modal-buttons">
+        <button onclick="closeAbout()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Confirm Deletion</h2>
+      <p>This will delete your current conversation. Are you sure?</p>
+      <div class="modal-buttons">
+        <button onclick="confirmDelete()">Yes, Delete</button>
+        <button onclick="closeDeleteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  {% endif %}
+
+  {% if not is_demo %}
+  <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
+    <a href="#" onclick="about()">@ About</a>
+    <a href="#" onclick="promptArchiveBeforeHistory()">🕓 History</a>
+    <a href="{{ url_for('logout') }}">🔓 Logout</a>
+  </div>
+{% endif %}
+
+  <script>
+    const unlabledMessageCountURL = "{{ url_for('unlabled_message_count') }}";
+    const SUGGESTIONS_URL = "{{ url_for('suggestions') }}"
+    const ICON_DIR = "{{ url_for('static', filename='icons/') }}"; 
+    const CURRENT_GROUP_TITLE = "{{ groupTitle or '' }}";
+    const IS_DEMO = {{ is_demo | tojson }};
+
+    document.getElementById("userInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+      }
+    });
+
+  </script>
+
+  <script src="{{ url_for('static', filename='chat.js') }}"></script>
+</body>
+</html>

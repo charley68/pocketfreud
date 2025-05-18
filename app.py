@@ -1,7 +1,19 @@
 import os
 import logging
+import json
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+# Function to load properties file
+def load_properties(filepath):
+    properties = {}
+    with open(filepath, "r") as file:
+        for line in file:
+            line = line.strip()
+            if line and not line.startswith("#"):  # Ignore empty lines and comments
+                key, value = line.split("=", 1)
+                properties[key.strip()] = value.strip()
+    return properties
 
 # ----------------- 1. INIT LOGGING & ENV -----------------
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +30,10 @@ app = Flask(
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
 
-# ----------------- 3. CONFIGURE APP -----------------
+# ----------------- 3. LOAD CONFIGURATION -----------------
+app.config["APP_CONFIG"] = load_properties("config.properties")
+
+# ----------------- 4. CONFIGURE APP -----------------
 app_root = "/test" if is_test else "/"
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
 
@@ -29,21 +44,21 @@ app.config.update(
     TEMPLATES_AUTO_RELOAD=True  # remove in production
 )
 
-# ----------------- 4. LOG FILE PATHS -----------------
+# ----------------- 5. LOG FILE PATHS -----------------
 logging.info(f"[STATIC FOLDER] {app.static_folder}")
 logging.info(f"[TEMPLATE FOLDER] {app.template_folder}")
 
-# ----------------- 5. LOAD PROMPTS -----------------
+# ----------------- 6. LOAD PROMPTS -----------------
 from modules.helpers import load_prompts
 PROMPTS = load_prompts("prompts")
 
-# ----------------- 6. INIT DB + ROUTES -----------------
+# ----------------- 7. INIT DB + ROUTES -----------------
 from modules.db import init_db
 from modules.routes import register_routes
 
 init_db()
 register_routes(app, PROMPTS)
 
-# ----------------- 7. DEV ENTRY -----------------
+# ----------------- 8. DEV ENTRY -----------------
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5050)

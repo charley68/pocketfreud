@@ -1,5 +1,5 @@
 from flask import render_template, request, jsonify, redirect, url_for, session, flash
-import datetime
+from datetime import datetime, date
 import requests
 import traceback
 import os
@@ -129,7 +129,8 @@ def register_routes(app, PROMPTS):
         messages = cursor.fetchall()
         conn.close()
 
-        return render_template('chat.html', messages=messages, username=session.get('username'), groupTitle=groupTitle)
+
+        return render_template('bot-chat.html',  is_demo=False, messages=messages, username=session.get('username'), groupTitle=groupTitle)
 
     @app.route('/api/chat', methods=['POST'])
     def chat_write():
@@ -159,7 +160,6 @@ def register_routes(app, PROMPTS):
             SELECT sender, message FROM conversations WHERE user_id = %s AND archive = 0 ORDER BY timestamp ASC LIMIT 20
         ''', (session['user_id'],))
         past = cursor.fetchall()
-        conn.close()
 
         for msg in past:
             conv_history.append({"role": "user" if msg["sender"] == "user" else "assistant", "content": msg["message"]})
@@ -179,6 +179,26 @@ def register_routes(app, PROMPTS):
             result = response.json()
             ai_msg = result['choices'][0]['message']['content']
 
+            # Extract token count from OpenAI response
+            total_tokens = result.get("usage", {}).get("total_tokens", 0)
+            # Format current month as MMYY
+            mmYY = datetime.now().strftime("%m%y")
+            user_id = session["user_id"]
+
+            # Try to update
+            cursor.execute("""
+                UPDATE user_tokens
+                SET month_tokens = month_tokens + %s
+                WHERE user_id = %s AND token_month = %s
+            """, (total_tokens, user_id, mmYY))
+
+            if cursor.rowcount == 0:
+                cursor.execute("""
+                    INSERT INTO user_tokens (user_id, token_month, month_tokens)
+                    VALUES (%s, %s, %s)
+                """, (user_id, mmYY, total_tokens))
+
+            conn.close()
             save_message_for_user(session['user_id'], 'user', user_input, group_title)
             save_message_for_user(session['user_id'], 'bot', ai_msg, group_title)
 
@@ -194,6 +214,7 @@ def register_routes(app, PROMPTS):
         prompt = PROMPTS["demo"]
 
         full_prompt = [{"role": "system", "content": prompt}] + messages
+        model = app.config["APP_CONFIG"]["model"]  # Get model from config
 
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
@@ -201,7 +222,7 @@ def register_routes(app, PROMPTS):
                 "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
                 "Content-Type": "application/json",
             },
-            json={"model": "gpt-3.5-turbo", "messages": full_prompt, "temperature": 0.7}
+            json={"model": model, "messages": full_prompt, "temperature": 0.7}
         )
 
         reply = response.json()["choices"][0]["message"]["content"].strip()
@@ -253,23 +274,71 @@ def register_routes(app, PROMPTS):
             row = cursor.fetchone()
 
         return jsonify({"count": row["count"]})
+    
+
+    @app.route("/api/token_usage", methods=["GET"])
+    def get_token_usage():
+        if "user_id" not in session:
+            print("Token check failed: not logged in")
+            return jsonify({"error": "Not logged in"}), 401
+
+        user_id = session["user_id"]
+        mmYY = datetime.now().strftime("%m%y")
+
+        print(f"Fetching tokens for user {user_id}, month {mmYY}")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT month_tokens FROM user_tokens
+            WHERE user_id = %s AND token_month = %s
+        """, (user_id, mmYY))
+        result = cursor.fetchone()
+
+        print("SQL result:", result)
+
+        token_count = result[0] if result else 0
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({"month_tokens": token_count})
+
+
+
 
     @app.route('/api/new_chat', methods=['POST'])
     def new_chat():
         if 'user_id' not in session:
-            return jsonify({"error": "Unauthorized"}), 401
+            return jsonify({'error': 'Not authenticated'}), 401
 
-        user_id = session['user_id']
         data = request.get_json()
-        group_title = data.get('groupTitle', 'Untitled Chat')
+        new_group_title = data.get('groupTitle')  # This might be None
 
+        # Archive current messages, but only set groupTitle if one was given
+        user_id = session['user_id']
         conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('UPDATE conversations SET archive = 1, groupTitle = %s WHERE user_id = %s AND archive = 0', (group_title, user_id))
-            conn.commit()
+        cur = conn.cursor()
 
-        return '', 204
+        if new_group_title:
+            cur.execute("""
+                UPDATE conversations
+                SET archive = 1, groupTitle = %s
+                WHERE user_id = %s AND archive = 0
+            """, (new_group_title, user_id))
+        else:
+            cur.execute("""
+                UPDATE conversations
+                SET archive = 1
+                WHERE user_id = %s AND archive = 0
+            """, (user_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({'status': 'archived and ready'})
+
 
     @app.route('/api/delete_chat', methods=['POST'])
     def delete_chat():
@@ -295,7 +364,7 @@ def register_routes(app, PROMPTS):
         if not mood:
             return 'Invalid data', 400
 
-        today = datetime.date.today()
+        today = date.today()
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -434,4 +503,5 @@ def register_routes(app, PROMPTS):
 
     @app.route('/demo')
     def demo():
-        return render_template("demo.html")
+        return render_template("bot-chat.html", is_demo=True)
+
