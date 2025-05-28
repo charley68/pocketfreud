@@ -162,6 +162,11 @@ button, .btn {
   text-decoration: none;
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 button:hover, .btn:hover {
   background-color: #6aa3c7;
 }
@@ -575,6 +580,35 @@ body.prod-env .modal {
   font-size: 0.95rem;
 }
 
+.help-box.hidden {
+  display: none;
+}
+.help-box {
+  font-size: 0.9rem;
+  color: #444;
+  background: #f9f9f9;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+}
+
+.nav-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.nav-disabled div,
+.nav-disabled i {
+  filter: grayscale(100%);
+  color: #bbb;
+}
+
+.nav-disabled:hover {
+  background: none;
+  text-decoration: none;
+}
+
 /* Themed button colors 
 body.test-env .modal button {
   background-color: #4e944f;
@@ -620,11 +654,9 @@ body.prod-env .modal button {
     display: flex;
     flex-direction: column;
   }
-  .nav-disabled {
-    opacity: 0.4;
-    pointer-events: none;
-    cursor: not-allowed;
-  }
+
+
+
 
   .nav-button {
     width: 160px;

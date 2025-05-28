@@ -3,6 +3,8 @@ import logging
 import json
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
+from modules.db import load_prompts_from_db, init_db
+from modules.routes import register_routes
 
 # Function to load properties file
 def load_properties(filepath):
@@ -33,6 +35,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
 # ----------------- 3. LOAD CONFIGURATION -----------------
 app.config["APP_CONFIG"] = load_properties("config.properties")
 
+
 # ----------------- 4. CONFIGURE APP -----------------
 app_root = "/test" if is_test else "/"
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
@@ -49,14 +52,12 @@ logging.info(f"[STATIC FOLDER] {app.static_folder}")
 logging.info(f"[TEMPLATE FOLDER] {app.template_folder}")
 
 # ----------------- 6. LOAD PROMPTS -----------------
-from modules.helpers import load_prompts
-PROMPTS = load_prompts("prompts")
+init_db()
+PROMPTS = load_prompts_from_db()
 
 # ----------------- 7. INIT DB + ROUTES -----------------
-from modules.db import init_db
-from modules.routes import register_routes
 
-init_db()
+
 register_routes(app, PROMPTS)
 
 # ----------------- 8. DEV ENTRY -----------------

@@ -1,16 +1,29 @@
 from flask import render_template, request, jsonify, redirect, url_for, session, flash
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import requests
 import traceback
 import os
+from functools import wraps
+from flask import current_app
+from modules.db import get_db_connection, save_message_for_user, load_user_settings, dumpConfig
+from modules.helpers import inject_base_url, inject_env, is_valid_email, pick_initial_greeting, get_setting
 
-from modules.db import get_db_connection, save_message_for_user
-from modules.helpers import inject_base_url, inject_env, is_valid_email, pick_initial_greeting
+HOTLINES = {
+    "GB": "0800 689 5652",
+    "UK": "0800 689 5652",
+    "US": "988",
+    "USA": "988",
+    "CA": "1-833-456-4566",
+    "AU": "13 11 14",
+    "IN": "91-22-27546669"
+    # Add more...
+}
 
 def register_routes(app, PROMPTS):
     # -------------------- CONTEXT PROCESSORS --------------------
     app.context_processor(inject_base_url)
     app.context_processor(inject_env)
+
 
     # -------------------- HOME & INFO --------------------
     @app.route('/')
@@ -100,6 +113,9 @@ def register_routes(app, PROMPTS):
                     'sex': profile['sex'],
                     'bio': profile['bio']
                 }
+                
+                load_user_settings(profile['id'])
+                
                 flash('Login successful!')
                 return redirect(url_for('home'))
             else:
@@ -109,39 +125,43 @@ def register_routes(app, PROMPTS):
         return render_template('signin.html')
 
     # -------------------- CHAT --------------------
-    @app.route('/chat')
-    def chat():
-        if 'user_id' not in session:
-            return redirect(url_for('signin'))
+    @app.route('/therapy')
+    @login_required()
+    def therapy():
 
         conn = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT groupTitle FROM conversations WHERE user_id = %s AND archive = 0 ORDER BY timestamp DESC LIMIT 1
+            SELECT session_name, persona FROM sessions WHERE user_id = %s AND current = TRUE
         ''', (session['user_id'],))
         row = cursor.fetchone()
-        groupTitle = row['groupTitle'] if row else None
+        sessionName = row['session_name'] if row else None
+        persona = row['persona'] if row else None
 
         cursor.execute('''
-            SELECT sender, message FROM conversations WHERE user_id = %s AND archive = 0 ORDER BY timestamp ASC LIMIT 20
-        ''', (session['user_id'],))
+            SELECT sender, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
+        ''',  (session['user_id'], sessionName))
         messages = cursor.fetchall()
         conn.close()
 
+        return render_template('bot-chat.html',  is_demo=False, is_therapy=True, is_casual = False, messages=messages, username=session.get('username'), sessionName=sessionName, sessionType=persona, user_settings=session.get('user_settings', {}))
 
-        return render_template('bot-chat.html',  is_demo=False, messages=messages, username=session.get('username'), groupTitle=groupTitle)
 
     @app.route('/api/chat', methods=['POST'])
+    @login_required()
     def chat_write():
-        if 'user_id' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
 
         data = request.get_json(force=True)
         messages = data.get('messages', [])
-        group_title = data.get('groupTitle')
+        sessionName = data.get('session_name')
+        persona = data.get('session_type')
+        model = session.get('user_settings', {}).get('model') 
+        session.get('user_settings')
 
-        conv_history = [{"role": "system", "content": PROMPTS.get("counsellor") or "You are PocketFreud..."}]
+        print(PROMPTS.get(persona))
+        conv_history = [{"role": "system", "content": PROMPTS.get(persona) or "You are PocketFreud..."}]
+
 
         profile = session.get('user_profile')
         if profile:
@@ -157,8 +177,8 @@ def register_routes(app, PROMPTS):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT sender, message FROM conversations WHERE user_id = %s AND archive = 0 ORDER BY timestamp ASC LIMIT 20
-        ''', (session['user_id'],))
+            SELECT sender, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
+        ''', (session['user_id'],sessionName))
         past = cursor.fetchall()
 
         for msg in past:
@@ -174,13 +194,16 @@ def register_routes(app, PROMPTS):
                     "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
                     "Content-Type": "application/json",
                 },
-                json={"model": "gpt-3.5-turbo", "messages": conv_history}
+                json={"model": model, "messages": conv_history}
             )
             result = response.json()
             ai_msg = result['choices'][0]['message']['content']
 
             # Extract token count from OpenAI response
             total_tokens = result.get("usage", {}).get("total_tokens", 0)
+            print(f"Token Count: {total_tokens}")
+
+
             # Format current month as MMYY
             mmYY = datetime.now().strftime("%m%y")
             user_id = session["user_id"]
@@ -192,29 +215,95 @@ def register_routes(app, PROMPTS):
                 WHERE user_id = %s AND token_month = %s
             """, (total_tokens, user_id, mmYY))
 
+            print(f"Tried to update user_tokens. RowCount={cursor.rowcount}")
             if cursor.rowcount == 0:
+                print("failed to Update so INSERT instead")
                 cursor.execute("""
                     INSERT INTO user_tokens (user_id, token_month, month_tokens)
                     VALUES (%s, %s, %s)
                 """, (user_id, mmYY, total_tokens))
-
+                
+            conn.commit() 
             conn.close()
-            save_message_for_user(session['user_id'], 'user', user_input, group_title)
-            save_message_for_user(session['user_id'], 'bot', ai_msg, group_title)
+            save_message_for_user(session['user_id'], 'user', user_input, sessionName)
+            save_message_for_user(session['user_id'], 'bot', ai_msg, sessionName)
 
             return jsonify({"response": ai_msg})
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
+        
+
+        
+    @app.route('/api/casual_chat', methods=['POST'])
+    @login_required()
+    def casual_chat_api():
+
+        model = session.get('user_settings', {}).get('model') 
+        print(f"Model: {model}")
+        try:
+            data = request.get_json(force=True)
+            messages = data.get('messages', [])
+
+            # Load the Casual Chat prompt from your PROMPTS dictionary
+            system_prompt = PROMPTS.get("Casual Chat")
+
+            # Start the message history with the system prompt
+            conv_history = [{"role": "system", "content": system_prompt}]
+
+            # Inject user profile info
+            profile = session.get('user_profile')
+            if profile:
+                intro = f"My name is {profile['username']}."
+                if profile.get('age'):
+                    intro += f" I am {profile['age']} years old."
+                if profile.get('sex'):
+                    intro += f" I am {profile['sex'].lower()}."
+                if profile.get('bio'):
+                    intro += f" A bit about me: {profile['bio']}"
+                conv_history.append({"role": "system", "content": intro})
+
+            # Add conversation messages (user + bot so far)
+            conv_history += messages
+
+            # Call OpenAI
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": conv_history,
+                    "temperature": 0.7
+                }
+            )
+
+            result = response.json()
+            ai_msg = result["choices"][0]["message"]["content"]
+
+            return jsonify({"response": ai_msg})
+
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
+
 
     @app.route('/api/demo_chat', methods=['POST'])
     def demo_chat():
+
         data = request.json
         messages = data.get("messages", [])
-        prompt = PROMPTS["demo"]
+        persona = data.get('session_type')
+        prompt = PROMPTS["DEMO"]
+
+
+        model = app.config["APP_CONFIG"]["model"] 
+        print(f"Model: {model}")
 
         full_prompt = [{"role": "system", "content": prompt}] + messages
-        model = app.config["APP_CONFIG"]["model"]  # Get model from config
 
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
@@ -229,26 +318,39 @@ def register_routes(app, PROMPTS):
         return jsonify({"response": reply})
 
 
+    @app.route('/settings')
+    @login_required()
+    def settings():
+        return render_template('settings.html', username=session.get('username'),
+                settings={
+                    "typing_delay": get_setting("typing_delay", int),
+                    "voice": get_setting("voice", str),
+                    "msg_retention": get_setting("msg_retention", int),
+                    "model": get_setting("model", str)
+                })
+    
+    @app.route('/api/config', methods=['GET'])
+    def get_config():
+        return jsonify(app.config["APP_CONFIG"])
+    
+
     @app.route('/api/chat_history')
+    @login_required()
     def chat_history():
-        if 'user_id' not in session:
-            return jsonify([])
 
         conn = get_db_connection()
         with conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT groupTitle, MAX(timestamp) as latest FROM conversations
-                WHERE user_id = %s AND archive = 1 GROUP BY groupTitle ORDER BY latest DESC
+                SELECT session_name, start_date  FROM sessions WHERE user_id = %s AND current = 0  ORDER BY start_date DESC
             ''', (session['user_id'],))
             rows = cursor.fetchall()
 
         return jsonify(rows)
 
     @app.route('/api/restore_chat', methods=['POST'])
+    @login_required()
     def restore_chat():
-        if 'user_id' not in session:
-            return jsonify({"error": "Unauthorized"}), 401
 
         data = request.get_json()
         restore_group = data.get('restore')
@@ -256,31 +358,64 @@ def register_routes(app, PROMPTS):
         conn = get_db_connection()
         with conn:
             cursor = conn.cursor()
-            cursor.execute('UPDATE conversations SET archive = 1 WHERE user_id = %s AND archive = 0', (session['user_id'],))
-            cursor.execute('UPDATE conversations SET archive = 0 WHERE user_id = %s AND groupTitle = %s', (session['user_id'], restore_group))
+            cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (session['user_id'],))
+            cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name  = %s', (session['user_id'], restore_group))
             conn.commit()
 
         return '', 204
 
-    @app.route('/api/unlabled_message_count')
-    def unlabled_message_count():
-        if 'user_id' not in session:
-            return jsonify({"count": 0})
+
+    @app.route("/api/rename_session", methods=["POST"])
+    @login_required()
+    def rename_session():
+
+        data = request.get_json()
+        old_name = data.get("old_name")
+        new_name = data.get("new_name")
+        user_id = session["user_id"]
+
+        if not old_name or not new_name:
+            return jsonify({"error": "Missing fields"}), 400
 
         conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT COUNT(*) as count FROM conversations WHERE user_id = %s AND groupTitle IS NULL', (session['user_id'],))
-            row = cursor.fetchone()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sessions SET session_name = %s WHERE user_id = %s AND session_name = %s
+        """, (new_name, user_id, old_name))
+        cursor.execute("""
+            UPDATE conversations SET session = %s WHERE user_id = %s AND session = %s
+        """, (new_name, user_id, old_name))
+        conn.commit()
+        conn.close()
 
-        return jsonify({"count": row["count"]})
+        return jsonify({"status": "renamed"})
+    
+    
+    @app.route('/change_persona', methods=['POST'])
+    @login_required()
+    def change_persona():
+
+        data = request.get_json()
+        current_session_name = data.get('current_session_name')
+        new_persona = data.get('persona')
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE sessions SET persona = %s WHERE user_id = %s AND session_name = %s",
+            (new_persona, session['user_id'], current_session_name)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({'success': True})
+
     
 
     @app.route("/api/token_usage", methods=["GET"])
+    @login_required()
     def get_token_usage():
-        if "user_id" not in session:
-            print("Token check failed: not logged in")
-            return jsonify({"error": "Not logged in"}), 401
 
         user_id = session["user_id"]
         mmYY = datetime.now().strftime("%m%y")
@@ -296,8 +431,7 @@ def register_routes(app, PROMPTS):
         result = cursor.fetchone()
 
         print("SQL result:", result)
-
-        token_count = result[0] if result else 0
+        token_count = result.get("month_tokens", 0) if result else 0
 
         cursor.close()
         conn.close()
@@ -308,12 +442,12 @@ def register_routes(app, PROMPTS):
 
 
     @app.route('/api/new_chat', methods=['POST'])
+    @login_required()
     def new_chat():
-        if 'user_id' not in session:
-            return jsonify({'error': 'Not authenticated'}), 401
+
 
         data = request.get_json()
-        new_group_title = data.get('groupTitle')  # This might be None
+        new_group_title = data.get('session_name')  # This might be None
 
         # Archive current messages, but only set groupTitle if one was given
         user_id = session['user_id']
@@ -323,7 +457,7 @@ def register_routes(app, PROMPTS):
         if new_group_title:
             cur.execute("""
                 UPDATE conversations
-                SET archive = 1, groupTitle = %s
+                SET archive = 1, session = %s
                 WHERE user_id = %s AND archive = 0
             """, (new_group_title, user_id))
         else:
@@ -341,9 +475,8 @@ def register_routes(app, PROMPTS):
 
 
     @app.route('/api/delete_chat', methods=['POST'])
+    @login_required()
     def delete_chat():
-        if 'user_id' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -353,9 +486,8 @@ def register_routes(app, PROMPTS):
         return jsonify({'status': 'deleted'})
 
     @app.route('/log_mood', methods=['POST'])
+    @login_required()
     def log_mood():
-        if 'user_id' not in session:
-            return 'Unauthorized', 401
 
         user_id = session['user_id']
         data = request.get_json()
@@ -394,11 +526,9 @@ def register_routes(app, PROMPTS):
         ])
 
     @app.route('/profile', methods=['GET', 'POST'])
+    @login_required()
     def profile():
         user_id = session.get("user_id")
-        if not user_id:
-            return redirect(url_for("signin"))
-
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -433,17 +563,18 @@ def register_routes(app, PROMPTS):
         return render_template("profile.html", user=user)
 
     @app.route('/journal', methods=['GET', 'POST'])
+    @login_required()
     def journal():
-        if 'user_id' not in session:
-            return redirect(url_for('signin'))
 
         user_id = session['user_id']
         date_param = request.args.get('date') or request.form.get('date')
         if date_param:
-            entry_date = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
+            entry_date = datetime.strptime(date_param, "%Y-%m-%d").date()
         else:
-            entry_date = datetime.date.today()
+            entry_date = date.today()
 
+        prev_date = (entry_date - timedelta(days=1)).strftime("%Y-%m-%d")
+        next_date = (entry_date + timedelta(days=1)).strftime("%Y-%m-%d")
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -469,9 +600,13 @@ def register_routes(app, PROMPTS):
         return render_template('journal_entry.html', journal_text=journal_text, mood=mood,
                                today=entry_date.strftime("%B %d, %Y"),
                                date_param=entry_date.strftime("%Y-%m-%d"),
-                               show_saved_popup=show_saved_popup)
+                               show_saved_popup=show_saved_popup,
+                               prev_date=prev_date,
+                               next_date=next_date)
+
 
     @app.route('/delete_journal', methods=['POST'])
+    @login_required()
     def delete_journal():
         date = request.args.get('date')
         user_id = session.get('user_id')
@@ -487,9 +622,8 @@ def register_routes(app, PROMPTS):
         return '', 400
 
     @app.route('/journal_calendar')
+    @login_required()
     def journal_calendar():
-        if 'user_id' not in session:
-            return redirect(url_for('signin'))
 
         user_id = session['user_id']
         conn = get_db_connection()
@@ -503,5 +637,125 @@ def register_routes(app, PROMPTS):
 
     @app.route('/demo')
     def demo():
-        return render_template("bot-chat.html", is_demo=True)
+        return render_template("bot-chat.html", is_demo=True, is_casual=False, is_therapy=False, sessionName="Demo", sessionType="Demo",  user_settings=current_app.config.get("APP_CONFIG", {}))
+    
 
+
+    @app.route('/casual')
+    @login_required()
+    def casual_chat():
+        return render_template("bot-chat.html", is_casual=True, is_demo=False, is_therapy=False, sessionName="Casual", sessionType="Casual Chat",user_settings=session.get('user_settings', {}))
+
+    @app.route('/api/current_session')
+    def current_session():
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        conn = get_db_connection()
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT session_name FROM sessions WHERE user_id = %s AND current = TRUE', (session['user_id'],))
+            row = cursor.fetchone()
+        return jsonify({"session_name": row['session_name']} if row else {"session_name": None})
+    
+
+    @login_required()
+    @app.route('/api/session_types')
+    def session_types():
+
+        conn = get_db_connection()
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT persona FROM session_types ORDER BY persona')
+            types = [row['persona'] for row in cursor.fetchall()]
+        return jsonify(types)
+    
+    @app.route('/api/new_session', methods=['POST'])
+    @login_required()
+    def new_session():
+
+        data = request.get_json()
+        session_name = data.get('session_name')
+        persona = data.get('persona')
+
+        if not session_name or not persona:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        conn = get_db_connection()
+        with conn:
+            cursor = conn.cursor()
+            # Mark existing sessions as not current
+            cursor.execute('UPDATE sessions SET current = FALSE WHERE user_id = %s', (session['user_id'],))
+            # Create new session
+            cursor.execute('''
+                INSERT INTO sessions (user_id, session_name, persona, current)
+                VALUES (%s, %s, %s, TRUE)
+            ''', (session['user_id'], session_name, persona))
+            conn.commit()
+
+        return jsonify({"status": "created", "session_name": session_name})
+
+
+    @app.route('/api/user_settings', methods=['POST'])
+    @login_required()
+    def user_settings():
+
+        user_id = session['user_id']
+        data = request.get_json()
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        for key, value in data.items():
+            cursor.execute('''
+                INSERT INTO user_settings (user_id, setting_key , setting_value )
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE `setting_value` = %s
+            ''', (user_id, key, str(value), str(value)))
+
+        conn.commit()
+        conn.close()
+
+        # Update in-session overrides
+        updated_settings = session.get('user_settings', {})
+        updated_settings.update({k: str(v) for k, v in data.items()})
+        session['user_settings'] = updated_settings
+
+
+        dumpConfig()
+
+        return jsonify({'status': 'ok'})
+    
+    @app.route("/set_country", methods=["POST"])
+    def set_country():
+        data = request.get_json()
+        if data and "country" in data:
+            session['country_code'] = data['country']
+            session['hotline'] = lookup_hotline(data['country'])
+            return {"status": "ok"}, 200
+        return {"error": "invalid"}, 400
+
+
+def login_required():
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if 'user_id' not in session:
+                if request.path.startswith('/api/'):
+                    return jsonify({'error': 'unauthorized'}), 401
+                else:
+                    return redirect(url_for('signin'))
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
+
+
+def user_is_in_crisis(text):
+    crisis_keywords = [
+        "kill myself", "suicidal", "end it all", "can't go on",
+        "want to die", "hurt myself", "ending my life", "give up"
+    ]
+    return any(keyword in text.lower() for keyword in crisis_keywords)
+
+def lookup_hotline(country_code):
+    return HOTLINES.get(country_code.upper(), "N/A")

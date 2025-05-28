@@ -1,6 +1,6 @@
 import re
 import datetime
-from flask import current_app
+from flask import session, current_app
 
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
@@ -40,13 +40,13 @@ def pick_initial_greeting(username):
     import random
     return random.choice(greetings)
 
-import os
 
-def load_prompts(directory="prompts"):
-    prompts = {}
-    for filename in os.listdir(directory):
-        if filename.endswith(".txt"):
-            key = filename.replace(".txt", "").lower()
-            with open(os.path.join(directory, filename), "r", encoding="utf-8") as f:
-                prompts[key] = f.read().strip()
-    return prompts
+def get_setting(key, cast=str):
+    # Check user override in session
+    value = session.get("user_settings", {}).get(key)
+
+    if value is None:
+        # Fall back to global app config
+        value = current_app.config["APP_CONFIG"].get(key)
+
+    return cast(value) if value is not None else None

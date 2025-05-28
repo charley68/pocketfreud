@@ -187,3 +187,11 @@
     border: 1px solid #ccc;
     box-sizing: border-box;
   }
+
+#newSessionModal .modal label,
+#newSessionModal .modal input,
+#newSessionModal .modal select {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+}

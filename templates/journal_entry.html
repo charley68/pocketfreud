@@ -27,7 +27,12 @@
         <div class="journal-header">
 
             <h1>Journal Entry</h1>
-            <h2>{{ today }}</h2>
+            <div class="journal-date-nav">
+              <a href="#" class="date-nav-arrow" title="Previous Day" onclick="navigateWithSave('{{ prev_date }}')">⬅️</a>
+              <h2>{{ today }}</h2>
+              <a href="#" class="date-nav-arrow" title="Next Day" onclick="navigateWithSave('{{ next_date }}')">➡️</a>
+              
+            </div>
         </div>
 
         {% if mood %}
@@ -122,17 +127,38 @@ function closeAllModals() {
   });
 }
 
+function navigateWithSave(targetDate) {
+  const textarea = document.querySelector(".journal-textarea");
+  const journalText = textarea.value;
+
+  fetch('{{ url_for("journal", date="__DATE__") }}'.replace('__DATE__', '{{ date_param }}'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      date: '{{ date_param }}',
+      journalText: journalText
+    })
+  }).then(response => {
+    if (response.ok) {
+      window.location.href = '{{ url_for("journal", date="__REPLACE__") }}'.replace('__REPLACE__', targetDate);
+    } else {
+      alert("Failed to save before navigating.");
+    }
+  });
+}
+
 </script>
 
 {% if show_saved_popup %}
-<div class="modal-overlay show" id="savedModal">
+<!--div class="modal-overlay show" id="savedModal">
   <div class="modal">
     <h2>Entry Saved</h2>
     <div class="modal-buttons">
       <button onclick="redirectToHome()">Close</button>
     </div>
   </div>
-</div>
+</div-->
+  <script>redirectToHome()</script>
 {% endif %}
 
 </body>

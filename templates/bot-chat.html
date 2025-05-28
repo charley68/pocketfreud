@@ -29,10 +29,15 @@
         {% if is_demo %}
           Try Me
           <span class="info-icon-wrapper" onclick="openDemoInfo()" title="About Demo Mode">
+        {% elif is_therapy %}
+          {{ sessionName }} ({{ sessionType }})
+          <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">        
         {% else %}
           Let's Talk
           <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">
         {% endif %}
+
+
           <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -67,7 +72,7 @@
         </div>
         <div class="button-row">
 
-          {% if not is_demo %}
+          {% if is_casual %}
           <button onclick="startNewChat()" class="icon-button">
             <img src="{{ url_for('static', filename='icons/add-file.png') }}" alt="New" class="icon">
           </button>
@@ -79,7 +84,7 @@
           <button id="speechToggleBtn" onclick="toggleSpeech()" class="icon-button" title="Toggle Speech">
             <img src="{{ url_for('static', filename='icons/speaking.png') }}" alt="Speech" class="icon">
           </button>
-          <button id="recordButton" class="icon-button" title="Hold to Record">
+          <button id="recordButton" class="icon-button" title="Hold to Record" disabled>
             <img src="{{ url_for('static', filename='icons/microphone.png') }}" alt="Record" class="icon">
           </button>
         </div>
@@ -146,42 +151,39 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="confirmModal">
-    <div class="modal">
-      <h2 id="modalTitle">End This Session?</h2>
-      <p id="modalMessage">You can give this chat a label to help find it later. Then we’ll start a fresh one.</p>
-      <input type="text" id="sessionLabel" placeholder="e.g. Anxious Morning" class="label-input">
-      <div class="modal-buttons">
-        <button id="confirmModalAction">Save & Continue</button>
-        <button onclick="deleteModal()">Delete</button>
-        <button onclick="closeModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
 
-  <div class="modal-overlay" id="historyModal"> 
-    <div class="modal">
-      <h2>Your Chat History</h2>
-      <table id="historyTable">
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Date</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div class="modal-buttons">
-        <button onclick="closeHistoryModal()">Close</button>
-      </div>
+<!-- Rename Session Modal -->
+<div id="renameSessionModal" class="modal-overlay">
+  <div class="modal">
+    <h2>Rename Therapy Session</h2>
+    <input type="text" id="renameSessionInput" placeholder="Enter new session name" style="width: 90%; max-width: 240px; padding: 0.5rem; margin-top: 1rem;"/>
+    <div class="modal-buttons" style="margin-top: 1rem;">
+      <button onclick="submitRenameSession()">Rename</button>
+      <button onclick="closeRenameModal()">Cancel</button>
     </div>
   </div>
+</div>
+
+<!-- Rename Therapy Type -->
+<div id="changePersonaModal"  class="modal-overlay">
+  <div class="modal">
+    <h2>🧠 Change Therapy Style</h2>
+    <label for="therapyTypeSelect">Select Therapy Type:</label>
+    <select id="therapyTypeSelect"></select>
+    <div class="modal-buttons" style="margin-top: 1rem;">
+      <button onclick="closeChangePersonaModal()">Cancel</button>
+      <button onclick="submitChangePersona()">OK</button>
+    </div>
+  </div>
+</div>
+
+
 
   <div id="aboutModal" class="modal-overlay">
     <div class="modal">
       <h2>About You</h2>
       <p>Hello <strong>{{ username }}</strong>, welcome to PocketFreud.</p>
+      <p>Using LLM AI provided by  <strong>{{ username }}</strong></p>
       <p>This app is your private emotional support space — available 24/7 just for you.</p>
       <p><strong>This month's token usage:</strong> <span id="tokenCount">Loading...</span></p>
       <div class="modal-buttons">
@@ -205,18 +207,28 @@
 
   {% if not is_demo %}
   <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
-    <a href="#" onclick="about()">@ About</a>
-    <a href="#" onclick="promptArchiveBeforeHistory()">🕓 History</a>
+    <a href="#" onclick="about()">🌀 About</a>
+    <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+    {% if is_therapy %}
+      <a href="#" onclick="renameTherapySession()">✏️ Rename Session</a>
+      <a href="#" onclick="changePersona()">🧠 Change Therapy Style</a>
+  
+    {% endif %}
     <a href="{{ url_for('logout') }}">🔓 Logout</a>
   </div>
 {% endif %}
 
+
   <script>
-    const unlabledMessageCountURL = "{{ url_for('unlabled_message_count') }}";
     const SUGGESTIONS_URL = "{{ url_for('suggestions') }}"
     const ICON_DIR = "{{ url_for('static', filename='icons/') }}"; 
-    const CURRENT_GROUP_TITLE = "{{ groupTitle or '' }}";
+    CURRENT_SESSION_NAME = {{ sessionName | tojson }};
+    CURRENT_SESSION_TYPE = {{ sessionType | tojson }};
     const IS_DEMO = {{ is_demo | tojson }};
+    const IS_CASUAL = {{ is_casual | tojson}};
+    const IS_THERAPY = {{ is_therapy | tojson}};
+    const settings = {{ user_settings | tojson }};
+    const hotline = "{{ session.get('hotline', '') }}";
 
     document.getElementById("userInput").addEventListener("keydown", function(event) {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -225,6 +237,16 @@
       }
     });
 
+
+    fetch("https://ipapi.co/json/")
+      .then(res => res.json())
+      .then(data => {
+        fetch("/set_country", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country: data.country })  // e.g., "GB"
+        });
+      });
   </script>
 
   <script src="{{ url_for('static', filename='chat.js') }}"></script>

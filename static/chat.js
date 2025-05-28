@@ -1,12 +1,15 @@
 const chatBox = document.getElementById("chatBox");
 //const botTypeSelector = document.getElementById("botTypeSelector");
-let demoMessages = [];
+let memoryMessages = [];
 const DEMO_LIMIT = 12;
 let pendingRestore = null;
 let moreJustOpened = false;
 let availableVoices = [];
-
 let speechEnabled = false;
+let APP_CONFIG = {};
+
+
+
 
 function loadVoices() {
   availableVoices = speechSynthesis.getVoices();
@@ -17,7 +20,7 @@ function loadVoices() {
   }
 }
 
-loadVoices();
+
 
 function closeModal() {
     document.getElementById('confirmModal').classList.remove('show');
@@ -25,66 +28,15 @@ function closeModal() {
   }
 
   function startNewChat() {
-    // NEW: if current chat already has a group title, skip the label modal
-    if (CURRENT_GROUP_TITLE && CURRENT_GROUP_TITLE.trim() !== '') {
-      fetch('/api/new_chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupTitle: null })  // start fresh
-      }).then(() => {
-        location.reload();
-      });
+
+    if (typeof IS_CASUAL !== 'undefined' && IS_CASUAL) {
+      // 🚫 No saving, just reset and reload
+      memoryMessages = [];
+      location.reload();
       return;
     }
-  
-    // Otherwise, prompt to label and archive
-    document.getElementById('sessionLabel').value = '';
-    document.getElementById('modalTitle').textContent = 'Label This Session?';
-    document.getElementById('modalMessage').textContent = 'You can label this session to save it before starting a new one.';
-    document.getElementById('confirmModalAction').textContent = 'Save & Start New';
-  
-    document.getElementById('confirmModalAction').onclick = () => {
-      const label = document.getElementById('sessionLabel').value.trim();
-      closeModal();
-  
-      fetch('/api/new_chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupTitle: label || 'Untitled Chat' })
-      }).then(() => {
-        location.reload();
-      });
-    };
-  
-    document.getElementById('confirmModal').classList.add('show');
   }
-  
 
-  async function restoreSession(groupTitle) {
-    const countRes = await fetch('/api/unlabled_message_count');
-    const { count } = await countRes.json();
-    if (count <= 1) {
-      await performRestore(groupTitle);
-    } else {
-      document.getElementById('sessionLabel').value = '';
-      document.getElementById('modalTitle').textContent = 'Archive Current Session?';
-      document.getElementById('modalMessage').textContent = 'Do you want to give the current conversation a label so it can be restored later or discard it ?';
-      document.getElementById('confirmModalAction').textContent = 'Label & Switch';
-      pendingRestore = groupTitle;
-      document.getElementById('confirmModalAction').onclick = async () => {
-        const label = document.getElementById('sessionLabel').value.trim();
-        closeModal();
-        await fetch('/api/new_chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ groupTitle: label || 'Untitled' })
-        });
-        await performRestore(pendingRestore);
-      };
-
-      document.getElementById('confirmModal').classList.add('show');
-    }
-  }
 
   async function about() {
     console.log("Opening About modal...");
@@ -117,19 +69,6 @@ function closeModal() {
     }
   }
   
-  
-  
-
-
-  async function performRestore(groupTitle) {
-    await fetch('/api/restore_chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restore: groupTitle })
-    });
-    location.reload();
-  }
-
 
 function openSuggestions() {
   fetch(SUGGESTIONS_URL )
@@ -184,9 +123,6 @@ function closeDemoInfo() {
     document.getElementById('demoInfoModal').classList.remove('show');
 }
 
-function closeHistoryModal() {
-    document.getElementById('historyModal').classList.remove('show');
-  }
 
   function deleteModal() {
     document.getElementById('deleteConfirmModal').classList.add('show');
@@ -221,7 +157,8 @@ function closeHistoryModal() {
     const inputField = document.getElementById("userInput");
     const userText = inputField.value.trim();
     if (!userText) return;
-  
+
+
     const userMessageDiv = document.createElement("div");
     userMessageDiv.className = "user-message";
     userMessageDiv.innerHTML = `<strong>You:</strong> ${userText}`;
@@ -234,16 +171,29 @@ function closeHistoryModal() {
     chatBox.appendChild(typingDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    let endpoint = IS_DEMO ? "/api/demo_chat" : "/api/chat";
+    let endpoint;
+    if (IS_DEMO) {
+      endpoint = "/api/demo_chat";
+    } else if (IS_CASUAL) {
+      endpoint = "/api/casual_chat";
+    } else {
+      endpoint = "/api/chat";
+    }
+
     let payload;
   
-    if (IS_DEMO) {
-      demoMessages.push({ role: "user", content: userText });
-      payload = { messages: demoMessages };
+    if (IS_DEMO || IS_CASUAL) {
+      memoryMessages.push({ role: "user", content: userText });
+      payload = { 
+        messages: memoryMessages,
+        session_name: CURRENT_SESSION_NAME,
+        session_type: CURRENT_SESSION_TYPE 
+       };
     } else {
       payload = {
         messages: [{ role: "user", content: userText }],
-        groupTitle: CURRENT_GROUP_TITLE // if defined
+        session_name: CURRENT_SESSION_NAME,
+        session_type: CURRENT_SESSION_TYPE 
       };
     }
   
@@ -264,9 +214,12 @@ function closeHistoryModal() {
       chatBox.appendChild(botDiv);
       speakText(data.response, botDiv);
   
+      console.log(settings);
+      typing_delay = settings.typing_delay|| 150;
+  
       const words = data.response.split(" ");
       let i = 0;
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         if (i < words.length) {
           botDiv.innerHTML += words[i] + " ";
           i++;
@@ -274,16 +227,16 @@ function closeHistoryModal() {
         } else {
           clearInterval(interval);
         }
-      }, 150);
+      }, typing_delay );
   
-      if (IS_DEMO) {
-        demoMessages.push({ role: "assistant", content: data.response });
+      if (IS_DEMO || IS_CASUAL) {
+        memoryMessages.push({ role: "assistant", content: data.response });
       }
   
       inputField.value = "";
     } catch (err) {
-        if (chatBox.contains(typingMessage)) {
-            chatBox.removeChild(typingMessage);
+        if (chatBox.contains(typingDiv)) {
+            chatBox.removeChild(typingDiv);
             }
 
       const errorDiv = document.createElement("div");
@@ -293,77 +246,6 @@ function closeHistoryModal() {
     }
   }
   
- 
-
-
-
-
-async function loadHistoryModal() {
-    const modal = document.getElementById('historyModal');
-    const tableBody = document.querySelector('#historyTable tbody');
-    tableBody.innerHTML = '';
-
-    try {
-      const res = await fetch("/api/chat_history");
-      const data = await res.json();
-
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${row.groupTitle}</td>
-          <td>${new Date(row.latest).toLocaleString()}</td>
-          <td><button onclick="restoreSession('${row.groupTitle}')">Restore</button></td>
-        `;
-        tableBody.appendChild(tr);
-      });
-
-      modal.classList.add('show');
-    } catch (err) {
-      alert('Failed to load chat history.');
-    }
-  }
-
-
-
-   
-  async function promptArchiveBeforeHistory() {
-    document.getElementById('moreMenu')?.classList.remove('show');
-  
-    // NEW: skip modal if already labeled
-    if (CURRENT_GROUP_TITLE && CURRENT_GROUP_TITLE.trim() !== '') {
-      loadHistoryModal();
-      return;
-    }
-  
-    const countRes = await fetch(unlabledMessageCountURL);
-    const { count } = await countRes.json();
-  
-    if (count <= 1) {
-      loadHistoryModal();
-    } else {
-      document.getElementById('sessionLabel').value = '';
-      document.getElementById('modalTitle').textContent = 'Label & Save Current Session?';
-      document.getElementById('modalMessage').textContent = 'You can give this session a label before switching.';
-      document.getElementById('confirmModalAction').textContent = 'Save';
-  
-      document.getElementById('confirmModalAction').onclick = async () => {
-        const label = document.getElementById('sessionLabel').value.trim();
-        closeModal();
-  
-        await fetch('/api/new_chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ groupTitle: label || 'Untitled Chat' })
-        });
-  
-        loadHistoryModal();
-      };
-  
-      document.getElementById('confirmModal').classList.add('show');
-    }
-  }
-  
-
 
 function toggleSpeech() {
   speechEnabled = !speechEnabled;
@@ -495,3 +377,107 @@ if (isMobile) {
   // Desktop: Toggle behavior
   recordButton.addEventListener("click", toggleRecording);
 }
+
+
+function renameTherapySession() {
+  const inputField = document.getElementById("renameSessionInput");
+  inputField.value = CURRENT_SESSION_NAME; // Set the current session name
+  document.getElementById("renameSessionModal").classList.add("show"); // Show the modal
+  inputField.focus(); // Focus on the input field
+  inputField.select(); // Select the text so the user can type over it
+}
+
+function closeRenameModal() {
+  document.getElementById("renameSessionModal").classList.remove("show");
+}
+
+function submitRenameSession() {
+  const newName = document.getElementById("renameSessionInput").value.trim();
+  if (!newName || newName === CURRENT_SESSION_NAME) {
+    closeRenameModal();
+    return;
+  }
+
+  fetch("/api/rename_session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      old_name: CURRENT_SESSION_NAME,
+      new_name: newName
+    })
+  }).then(res => {
+    if (res.ok) {
+      CURRENT_SESSION_NAME = newName;
+      document.querySelector(".chat-title").textContent = `${newName} (${CURRENT_SESSION_TYPE})`;
+      closeRenameModal();
+    } else {
+      alert("Rename failed.");
+    }
+  }).catch(err => {
+    console.error("Error renaming session:", err);
+    alert("Something went wrong.");
+  });
+}
+
+function changePersona() {
+
+      fetch("/api/session_types")
+        .then(res => res.json())
+        .then(types => {
+          const dropdown = document.getElementById("therapyTypeSelect");
+          dropdown.innerHTML = "";
+          types.forEach(type => {
+            if (type.toLowerCase() !== "demo" && type.toLowerCase() !== "casual") {
+              const opt = document.createElement("option");
+              opt.value = type;
+              opt.textContent = type;
+              dropdown.appendChild(opt);
+              if (type.toLowerCase() === "cbt") {
+                opt.selected = true;
+              }
+            }
+          });
+
+
+      document.getElementById("changePersonaModal").classList.add("show");
+    })
+    .catch(error => {
+      alert("Failed to load session types: " + error.message);
+    });
+}
+
+function closeChangePersonaModal() {
+  document.getElementById("changePersonaModal").style.display = "none";
+}
+
+function submitChangePersona() {
+  const selectedType = document.getElementById("therapyTypeSelect").value;
+
+  fetch('/change_persona', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      current_session_name: CURRENT_SESSION_NAME,
+      persona: selectedType
+    })
+  })
+  .then(res => {
+    if (res.ok) {
+      CURRENT_SESSION_TYPE = selectedType;
+      document.querySelector(".chat-title").textContent = `${CURRENT_SESSION_NAME} (${CURRENT_SESSION_TYPE})`;
+      closeChangePersonaModal();
+    } else {
+      alert("Failed to update therapy style.");
+    }
+  })
+}
+
+function closeChangePersonaModal() {
+  document.getElementById("changePersonaModal").style.display = "none";
+}
+
+
+
+loadVoices();
