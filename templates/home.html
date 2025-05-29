@@ -97,7 +97,7 @@
   <!-- Modal: Create new session_name -->
   <div id="newSessionModal" class="modal-overlay">
     <div class="modal" style="max-width: 400px;">
-      <h2>Start a New Session</h2>
+      <h2>Start A New Session</h2>
 
       <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 0.5rem;">
         <label for="sessionNameInput" style="text-align: right;">Session Name:</label>
@@ -151,6 +151,12 @@
   </div>
 
   <script>
+    async function fetchDefaultSessionName() {
+        const response = await fetch('/api/get-next-session-name');
+        const data = await response.json();
+        return data.defaultName;
+    }
+
     let moreJustOpened = false;
 
     function toggleMoreMenu() {
@@ -231,50 +237,55 @@
 
 
     function openNewSessionModal() {
-      const defaultName = `session-${new Date().toLocaleDateString('en-GB').replace(/\//g, '')}`;
-      document.getElementById("sessionNameInput").value = defaultName;
-      const input = document.getElementById("sessionNameInput");
-      input.value = defaultName;
+      fetchDefaultSessionName().then(defaultName => {
+        document.getElementById("sessionNameInput").value = defaultName;
+        const input = document.getElementById("sessionNameInput");
+        input.value = defaultName;
 
-
-      fetch("/api/session_types")
-        .then(res => res.json())
-        .then(types => {
-          const dropdown = document.getElementById("sessionTypeSelect");
-          dropdown.innerHTML = "";
-          types.forEach(type => {
-            if (type.toLowerCase() !== "demo" && type.toLowerCase() !== "casual") {
-              const opt = document.createElement("option");
-              opt.value = type;
-              opt.textContent = type;
-              dropdown.appendChild(opt);
-              if (type.toLowerCase() === "cbt") {
-                opt.selected = true;
+        fetch("/api/session_types")
+          .then(res => res.json())
+          .then(types => {
+            const dropdown = document.getElementById("sessionTypeSelect");
+            dropdown.innerHTML = "";
+            types.forEach(type => {
+              if (type.toLowerCase() !== "demo" && type.toLowerCase() !== "casual") {
+                const opt = document.createElement("option");
+                opt.value = type;
+                opt.textContent = type;
+                dropdown.appendChild(opt);
+                if (type.toLowerCase() === "cbt") {
+                  opt.selected = true;
+                }
               }
-            }
+            });
+            document.getElementById("newSessionModal").classList.add("show");
+            input.focus();
+            input.select();
           });
-          document.getElementById("newSessionModal").classList.add("show");
-          input.focus();
-          input.select();
-        });
-    }
-
-    function confirmNewSession() {
-      const name = document.getElementById("sessionNameInput").value.trim();
-      const type = document.getElementById("sessionTypeSelect").value;
-      if (!name || !type) return;
-
-      fetch("/api/new_session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_name: name, persona: type })
-      }).then(() => {
-        window.location.href = "/therapy";
       });
     }
 
+    async function confirmNewSession() {
+        const name = document.getElementById("sessionNameInput").value.trim();
+        const type = document.getElementById("sessionTypeSelect").value;
+        if (!name || !type) return;
 
-    document.addEventListener("DOMContentLoaded", () => {
+        // Increment session counter only when starting a new session
+        await fetch("/api/increment-session-counter", { method: "POST" });
+
+        fetch("/api/new_session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_name: name, persona: type })
+        }).then(() => {
+            window.location.href = "/therapy";
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const defaultName = await fetchDefaultSessionName();
+      console.log(defaultName); // Use defaultName as needed
+
       const therapyButton = document.getElementById("therapyButton");
       therapyButton?.addEventListener("click", async (e) => {
         e.preventDefault();

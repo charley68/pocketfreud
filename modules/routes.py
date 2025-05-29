@@ -6,7 +6,7 @@ import os
 from functools import wraps
 from flask import current_app
 from modules.db import get_db_connection, save_message_for_user, load_user_settings, dumpConfig
-from modules.helpers import inject_base_url, inject_env, is_valid_email, pick_initial_greeting, get_setting
+from modules.helpers import inject_base_url, inject_env, is_valid_email, pick_initial_greeting, get_setting, call_llm_api
 
 HOTLINES = {
     "GB": "0800 689 5652",
@@ -19,7 +19,7 @@ HOTLINES = {
     # Add more...
 }
 
-def register_routes(app, PROMPTS):
+def register_routes(app):
     # -------------------- CONTEXT PROCESSORS --------------------
     app.context_processor(inject_base_url)
     app.context_processor(inject_env)
@@ -151,173 +151,118 @@ def register_routes(app, PROMPTS):
     @app.route('/api/chat', methods=['POST'])
     @login_required()
     def chat_write():
+        from modules.helpers import build_conv_history, detect_crisis_response
 
         data = request.get_json(force=True)
         messages = data.get('messages', [])
-        sessionName = data.get('session_name')
+        session_name = data.get('session_name')
         persona = data.get('session_type')
-        model = session.get('user_settings', {}).get('model') 
-        session.get('user_settings')
+        model = session.get('user_settings', {}).get('model')
 
-        print(PROMPTS.get(persona))
-        conv_history = [{"role": "system", "content": PROMPTS.get(persona) or "You are PocketFreud..."}]
-
-
-        profile = session.get('user_profile')
-        if profile:
-            intro = f"My name is {profile['username']}."
-            if profile.get('age'):
-                intro += f" I am {profile['age']} years old."
-            if profile.get('sex'):
-                intro += f" I am {profile['sex'].lower()}."
-            if profile.get('bio'):
-                intro += f" A bit about me: {profile['bio']}"
-            conv_history.append({"role": "system", "content": intro})
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT sender, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
-        ''', (session['user_id'],sessionName))
-        past = cursor.fetchall()
-
-        for msg in past:
-            conv_history.append({"role": "user" if msg["sender"] == "user" else "assistant", "content": msg["message"]})
-
+        conv_history = build_conv_history(messages[:-1], persona)
         user_input = messages[-1]['content']
         conv_history.append({"role": "user", "content": user_input})
 
+        responses = []
+
         try:
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                    "Content-Type": "application/json",
-                },
-                json={"model": model, "messages": conv_history}
-            )
-            result = response.json()
-            ai_msg = result['choices'][0]['message']['content']
+            crisis_msg = detect_crisis_response(user_input)
+            if crisis_msg:
+                save_message_for_user(session['user_id'], 'bot', crisis_msg, session_name)
+                responses.append(crisis_msg)
 
-            # Extract token count from OpenAI response
-            total_tokens = result.get("usage", {}).get("total_tokens", 0)
-            print(f"Token Count: {total_tokens}")
+            # Call OpenAI
+            ai_msg, usage = call_llm_api(model, conv_history)
 
-
-            # Format current month as MMYY
+            total_tokens = usage.get("total_tokens", 0)
             mmYY = datetime.now().strftime("%m%y")
             user_id = session["user_id"]
 
-            # Try to update
+            # Update token tracking
+            conn = get_db_connection()
+            cursor = conn.cursor()
             cursor.execute("""
-                UPDATE user_tokens
-                SET month_tokens = month_tokens + %s
+                UPDATE user_tokens SET month_tokens = month_tokens + %s
                 WHERE user_id = %s AND token_month = %s
             """, (total_tokens, user_id, mmYY))
-
-            print(f"Tried to update user_tokens. RowCount={cursor.rowcount}")
             if cursor.rowcount == 0:
-                print("failed to Update so INSERT instead")
                 cursor.execute("""
                     INSERT INTO user_tokens (user_id, token_month, month_tokens)
                     VALUES (%s, %s, %s)
                 """, (user_id, mmYY, total_tokens))
-                
-            conn.commit() 
+            conn.commit()
             conn.close()
-            save_message_for_user(session['user_id'], 'user', user_input, sessionName)
-            save_message_for_user(session['user_id'], 'bot', ai_msg, sessionName)
 
-            return jsonify({"response": ai_msg})
+            save_message_for_user(user_id, 'user', user_input, session_name)
+            save_message_for_user(user_id, 'bot', ai_msg, session_name)
+
+            responses.append(ai_msg)
+            return jsonify({"responses": responses})
+
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
-        
+    
 
-        
     @app.route('/api/casual_chat', methods=['POST'])
     @login_required()
     def casual_chat_api():
+        from modules.helpers import build_conv_history, detect_crisis_response
 
-        model = session.get('user_settings', {}).get('model') 
-        print(f"Model: {model}")
+        model = session.get('user_settings', {}).get('model')
+        data = request.get_json(force=True)
+        messages = data.get('messages', [])
+        persona = "Casual Chat"
+
+        conv_history = build_conv_history(messages[:-1], persona)
+        user_input = messages[-1]['content']
+        conv_history.append({"role": "user", "content": user_input})
+
+        responses = []
+
         try:
-            data = request.get_json(force=True)
-            messages = data.get('messages', [])
+            crisis_msg = detect_crisis_response(user_input)
+            if crisis_msg:
+                responses.append(crisis_msg)
 
-            # Load the Casual Chat prompt from your PROMPTS dictionary
-            system_prompt = PROMPTS.get("Casual Chat")
-
-            # Start the message history with the system prompt
-            conv_history = [{"role": "system", "content": system_prompt}]
-
-            # Inject user profile info
-            profile = session.get('user_profile')
-            if profile:
-                intro = f"My name is {profile['username']}."
-                if profile.get('age'):
-                    intro += f" I am {profile['age']} years old."
-                if profile.get('sex'):
-                    intro += f" I am {profile['sex'].lower()}."
-                if profile.get('bio'):
-                    intro += f" A bit about me: {profile['bio']}"
-                conv_history.append({"role": "system", "content": intro})
-
-            # Add conversation messages (user + bot so far)
-            conv_history += messages
-
-            # Call OpenAI
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": conv_history,
-                    "temperature": 0.7
-                }
-            )
-
-            result = response.json()
-            ai_msg = result["choices"][0]["message"]["content"]
-
-            return jsonify({"response": ai_msg})
+            ai_msg, usage = call_llm_api(model, conv_history)
+            responses.append(ai_msg)
+            return jsonify({"responses": responses})
 
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
-
-
+        
     @app.route('/api/demo_chat', methods=['POST'])
     def demo_chat():
+        from modules.helpers import build_conv_history, detect_crisis_response
 
-        data = request.json
+        data = request.get_json(force=True)
         messages = data.get("messages", [])
-        persona = data.get('session_type')
-        prompt = PROMPTS["DEMO"]
+        persona = "DEMO"
+        model = app.config["APP_CONFIG"]["model"]
 
+        conv_history = build_conv_history(messages[:-1], persona)
+        user_input = messages[-1]['content']
+        conv_history.append({"role": "user", "content": user_input})
 
-        model = app.config["APP_CONFIG"]["model"] 
-        print(f"Model: {model}")
+        responses = []
 
-        full_prompt = [{"role": "system", "content": prompt}] + messages
+        try:
+            crisis_msg = detect_crisis_response(user_input)
+            if crisis_msg:
+                responses.append(crisis_msg)
 
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                "Content-Type": "application/json",
-            },
-            json={"model": model, "messages": full_prompt, "temperature": 0.7}
-        )
+            ai_msg, usage = call_llm_api(model, conv_history)
+            responses.append(ai_msg)
+            return jsonify({"responses": responses})
 
-        reply = response.json()["choices"][0]["message"]["content"].strip()
-        return jsonify({"response": reply})
+        except Exception as e:
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
 
-
+        
     @app.route('/settings')
     @login_required()
     def settings():

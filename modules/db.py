@@ -1,6 +1,6 @@
 import os
 import pymysql
-from flask import session, current_app
+from flask import session, current_app, jsonify
 
 def get_db_connection():
     return pymysql.connect(
@@ -94,7 +94,6 @@ def init_db():
             );
         ''')
 
-
         conn.commit()
         populate_personas()
 
@@ -158,3 +157,41 @@ def load_user_settings(user_id):
 def dumpConfig():
     for k, v in session['user_settings'].items():
         print(f"{k}={v}")
+
+def get_next_session_name(user_id):
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        # Retrieve the current session counter without incrementing
+        cursor.execute('''
+            SELECT setting_value FROM user_settings 
+            WHERE user_id = %s AND setting_key = 'session_counter'
+        ''', (user_id,))
+        result = cursor.fetchone()
+        if result is None:
+            # Initialize session_counter if not present
+            cursor.execute('''
+                INSERT INTO user_settings (user_id, setting_key, setting_value)
+                VALUES (%s, 'session_counter', '1')
+            ''', (user_id,))
+            conn.commit()
+            return "session-1"
+        else:
+            session_counter = int(result['setting_value'])
+            return f"session-{session_counter}"
+
+def increment_session_counter(user_id):
+    conn = get_db_connection()
+    with conn:
+        cursor = conn.cursor()
+        # Increment the session counter
+        cursor.execute('''
+            UPDATE user_settings
+            SET setting_value = setting_value + 1
+            WHERE user_id = %s AND setting_key = 'session_counter'
+        ''', (user_id,))
+        conn.commit()
+
+def get_next_session_name_api(user_id):
+    session_name = get_next_session_name(user_id)
+    return jsonify({"defaultName": session_name})

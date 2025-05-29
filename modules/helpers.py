@@ -1,8 +1,14 @@
 import re
 import datetime
+import requests
+from flask import session
+from datetime import datetime
+import os
+from modules.db import load_prompts_from_db
 from flask import session, current_app
 
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
+PROMPTS = load_prompts_from_db()
 
 def is_valid_email(email):
     return bool(EMAIL_REGEX.match(email))
@@ -50,3 +56,74 @@ def get_setting(key, cast=str):
         value = current_app.config["APP_CONFIG"].get(key)
 
     return cast(value) if value is not None else None
+
+# utils/chat_helpers.py
+
+
+
+def build_profile_intro(profile):
+    intro = f"My name is {profile['username']}."
+    if profile.get('age'):
+        intro += f" I am {profile['age']} years old."
+    if profile.get('sex'):
+        intro += f" I am {profile['sex'].lower()}."
+    if profile.get('bio'):
+        intro += f" A bit about me: {profile['bio']}"
+    return intro
+
+def build_conv_history(messages, persona):
+    history = [{"role": "system", "content": PROMPTS.get(persona)}]
+
+    profile = session.get("user_profile")
+    if profile:
+        history.append({"role": "system", "content": build_profile_intro(profile)})
+
+    history.extend(messages)
+    return history
+
+def detect_crisis_response(user_input):
+    crisis_keywords = [
+        "kill myself", "kill somebody", "suicidal", "end it all", "can't go on",
+        "want to die", "hurt myself", "ending my life", "give up", "self harm", "overdose"
+    ]
+    if any(keyword in user_input.lower() for keyword in crisis_keywords):
+        hotline = session.get("hotline", "a local support number")
+        return (
+            f"I'm concerned about your safety. You are not alone. "
+            f"If you're in crisis, please call your local support line: {hotline}"
+        )
+    return None
+
+
+
+def call_llm_api(model, messages, temperature=0.7):
+
+    if model.startswith("claude"):
+        pass
+        # use Anthropic SDK
+    else:
+        try:
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature
+                }
+            )
+            result = response.json()
+
+            # Basic error guard
+            if "choices" not in result or not result["choices"]:
+                raise ValueError("Invalid OpenAI response")
+
+            message = result["choices"][0]["message"]["content"]
+            usage = result.get("usage", {})
+            return message, usage
+
+        except Exception as e:
+            raise RuntimeError(f"LLM API call failed: {e}")

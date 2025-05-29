@@ -157,8 +157,7 @@ function closeDemoInfo() {
     const inputField = document.getElementById("userInput");
     const userText = inputField.value.trim();
     if (!userText) return;
-
-
+  
     const userMessageDiv = document.createElement("div");
     userMessageDiv.className = "user-message";
     userMessageDiv.innerHTML = `<strong>You:</strong> ${userText}`;
@@ -170,7 +169,7 @@ function closeDemoInfo() {
     typingDiv.innerHTML = `<em>PocketFreud is typing...</em>`;
     chatBox.appendChild(typingDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
-
+  
     let endpoint;
     if (IS_DEMO) {
       endpoint = "/api/demo_chat";
@@ -179,21 +178,20 @@ function closeDemoInfo() {
     } else {
       endpoint = "/api/chat";
     }
-
-    let payload;
   
+    let payload;
     if (IS_DEMO || IS_CASUAL) {
       memoryMessages.push({ role: "user", content: userText });
-      payload = { 
+      payload = {
         messages: memoryMessages,
         session_name: CURRENT_SESSION_NAME,
-        session_type: CURRENT_SESSION_TYPE 
-       };
+        session_type: CURRENT_SESSION_TYPE
+      };
     } else {
       payload = {
         messages: [{ role: "user", content: userText }],
         session_name: CURRENT_SESSION_NAME,
-        session_type: CURRENT_SESSION_TYPE 
+        session_type: CURRENT_SESSION_TYPE
       };
     }
   
@@ -208,43 +206,85 @@ function closeDemoInfo() {
       const data = await response.json();
       chatBox.removeChild(typingDiv);
   
-      const botDiv = document.createElement("div");
-      botDiv.className = "bot-message";
-      botDiv.innerHTML = `<strong>PocketFreud:</strong> `;
-      chatBox.appendChild(botDiv);
-      speakText(data.response, botDiv);
+      const botReplies = data.responses || [data.response]; // fallback for old format
+      typing_delay = settings.typing_delay || 150;
   
-      console.log(settings);
-      typing_delay = settings.typing_delay|| 150;
+      botReplies.forEach((reply, idx) => {
+        const botDiv = document.createElement("div");
+        botDiv.className = "bot-message";
+        botDiv.innerHTML = `<strong>PocketFreud:</strong> `;
+        chatBox.appendChild(botDiv);
   
-      const words = data.response.split(" ");
-      let i = 0;
-      interval = setInterval(() => {
-        if (i < words.length) {
-          botDiv.innerHTML += words[i] + " ";
-          i++;
-          chatBox.scrollTop = chatBox.scrollHeight;
-        } else {
-          clearInterval(interval);
+        if (idx < botReplies.length - 1) {
+          if (reply.toLowerCase().includes("if you're in crisis")) {
+            if (localStorage.getItem("crisis_dismissed") === "true") {
+              return; // skip rendering if already dismissed
+            }
+            
+            botDiv.classList.add("crisis-message");
+            
+            // Dismiss button
+            const dismissBtn = document.createElement("button");
+            dismissBtn.innerHTML = "✖";
+            dismissBtn.className = "crisis-dismiss";
+            dismissBtn.onclick = () => {
+              botDiv.remove();
+              localStorage.setItem("crisis_dismissed", "true");
+            };
+            botDiv.appendChild(dismissBtn);
+
+            
+            botDiv.classList.add("crisis-message");
+        
+            // Extract phone number (basic example)
+            const phoneMatch = reply.match(/(\+?\d[\d\s\-().]{7,})/);
+            if (phoneMatch) {
+              const telLink = phoneMatch[1].replace(/\s+/g, ''); // remove spaces
+              botDiv.innerHTML += `
+                ⚠️ ${reply}<br>
+                <a href="tel:${telLink}" class="crisis-call-link">📞 Tap to call: ${phoneMatch[1]}</a>
+              `;
+            } else {
+              botDiv.innerHTML += `⚠️ ${reply}`;
+            }
+          } else {
+            botDiv.innerHTML += reply;
+          }
         }
-      }, typing_delay );
+        else {
+          // Animate the final reply
+          speakText(reply, botDiv);
+          const words = reply.split(" ");
+          let i = 0;
+          interval = setInterval(() => {
+            if (i < words.length) {
+              botDiv.innerHTML += words[i] + " ";
+              i++;
+              chatBox.scrollTop = chatBox.scrollHeight;
+            } else {
+              clearInterval(interval);
+            }
+          }, typing_delay);
   
-      if (IS_DEMO || IS_CASUAL) {
-        memoryMessages.push({ role: "assistant", content: data.response });
-      }
+          if (IS_DEMO || IS_CASUAL) {
+            memoryMessages.push({ role: "assistant", content: reply });
+          }
+        }
+      });
   
       inputField.value = "";
     } catch (err) {
-        if (chatBox.contains(typingDiv)) {
-            chatBox.removeChild(typingDiv);
-            }
-
+      if (chatBox.contains(typingDiv)) {
+        chatBox.removeChild(typingDiv);
+      }
+  
       const errorDiv = document.createElement("div");
       errorDiv.className = "bot-message";
       errorDiv.innerHTML = `<strong>Error:</strong> ${err.message}`;
       chatBox.appendChild(errorDiv);
     }
   }
+  
   
 
 function toggleSpeech() {
