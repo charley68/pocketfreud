@@ -84,7 +84,7 @@ def build_conv_history(messages, persona):
 def detect_crisis_response(user_input):
     crisis_keywords = [
         "kill myself", "kill somebody", "suicidal", "end it all", "can't go on",
-        "want to die", "hurt myself", "ending my life", "give up", "self harm", "overdose"
+        "want to die", "hurt myself", "ending my life", "self harm", "overdose"
     ]
     if any(keyword in user_input.lower() for keyword in crisis_keywords):
         hotline = session.get("hotline", "a local support number")

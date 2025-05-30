@@ -178,19 +178,7 @@
 </div>
 
 
-
-  <div id="aboutModal" class="modal-overlay">
-    <div class="modal">
-      <h2>About You</h2>
-      <p>Hello <strong>{{ username }}</strong>, welcome to PocketFreud.</p>
-      <p>Using LLM AI provided by  <strong>{{ username }}</strong></p>
-      <p>This app is your private emotional support space — available 24/7 just for you.</p>
-      <p><strong>This month's token usage:</strong> <span id="tokenCount">Loading...</span></p>
-      <div class="modal-buttons">
-        <button onclick="closeAbout()">Close</button>
-      </div>
-    </div>
-  </div>
+  {% include 'about_modal.html' %}
 
   <div id="deleteConfirmModal" class="modal-overlay">
     <div class="modal">
@@ -250,5 +238,6 @@
   </script>
 
   <script src="{{ url_for('static', filename='chat.js') }}"></script>
+  <script src="{{ url_for('static', filename='common.js') }}"></script>
 </body>
 </html>
