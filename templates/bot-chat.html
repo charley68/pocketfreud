@@ -55,8 +55,8 @@
           </div>
         {% elif messages %}
           {% for msg in messages %}
-            <div class="{{ 'user-message' if msg['sender'] == 'user' else 'bot-message' }}">
-              <strong>{{ 'You' if msg['sender'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
+            <div class="{{ 'user-message' if msg['role'] == 'user' else 'bot-message' }}">
+              <strong>{{ 'You' if msg['role'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
             </div>
           {% endfor %}
         {% else %}

@@ -1,12 +1,41 @@
-from flask import render_template, request, jsonify, redirect, url_for, session, flash
-from datetime import datetime, date, timedelta
+import os
 import requests
 import traceback
-import os
+from datetime import datetime, date, timedelta
 from functools import wraps
-from flask import current_app
-from modules.db import get_db_connection, save_message_for_user, load_user_settings, dumpConfig
-from modules.helpers import inject_base_url, inject_env, is_valid_email, pick_initial_greeting, get_setting, call_llm_api
+from flask import (
+    render_template, request, jsonify, redirect,
+    url_for, session, flash, current_app
+)
+
+from modules.db import (
+    get_db_connection,
+    save_message_for_user,
+    load_user_settings,
+    get_last_summary,
+    get_last_summary_checkpoint,
+    get_messages_after,
+    save_summary,
+    dumpConfig,
+    get_journals_by_days
+)
+
+from modules.helpers import (
+    inject_base_url,
+    inject_env,
+    is_valid_email,
+    pick_initial_greeting,
+    get_setting,
+    call_llm_api,
+    build_conv_history,
+    detect_crisis_response,
+    generate_incremental_summary,
+    extract_top_themes,
+    generate_monthly_summary
+
+)
+
+
 
 HOTLINES = {
     "GB": "0800 689 5652",
@@ -140,7 +169,7 @@ def register_routes(app):
         persona = row['persona'] if row else None
 
         cursor.execute('''
-            SELECT sender, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
+            SELECT role, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
         ''',  (session['user_id'], sessionName))
         messages = cursor.fetchall()
         conn.close()
@@ -151,7 +180,6 @@ def register_routes(app):
     @app.route('/api/chat', methods=['POST'])
     @login_required()
     def chat_write():
-        from modules.helpers import build_conv_history, detect_crisis_response
 
         data = request.get_json(force=True)
         messages = data.get('messages', [])
@@ -159,26 +187,40 @@ def register_routes(app):
         persona = data.get('session_type')
         model = session.get('user_settings', {}).get('model')
 
-        conv_history = build_conv_history(messages[:-1], persona)
+        user_id = session["user_id"]
         user_input = messages[-1]['content']
-        conv_history.append({"role": "user", "content": user_input})
-
         responses = []
 
         try:
+            # === Detect and respond to crisis if needed ===
             crisis_msg = detect_crisis_response(user_input)
             if crisis_msg:
-                save_message_for_user(session['user_id'], 'bot', crisis_msg, session_name)
+                #save_message_for_user(user_id, 'assistant', crisis_msg, session_name)
                 responses.append(crisis_msg)
 
-            # Call OpenAI
+            # === Build conversation history ===
+            summary = get_last_summary(user_id, session_name)
+            last_checkpoint = get_last_summary_checkpoint(user_id, session_name)
+            recent_msgs = get_messages_after(user_id, session_name, last_checkpoint)
+
+            conv_history = []
+
+            if summary:
+                conv_history.append({"role": "system", "content": f"Summary so far: {summary}"})
+                conv_history += recent_msgs
+                print("[SUMMARY] Using summary in system prompt")
+            else:
+                conv_history += build_conv_history(messages[:-1], persona)
+
+            # Append current user message
+            conv_history.append({"role": "user", "content": user_input})
+
+            # === Call OpenAI ===
             ai_msg, usage = call_llm_api(model, conv_history)
 
+            # === Token tracking ===
             total_tokens = usage.get("total_tokens", 0)
             mmYY = datetime.now().strftime("%m%y")
-            user_id = session["user_id"]
-
-            # Update token tracking
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("""
@@ -193,21 +235,31 @@ def register_routes(app):
             conn.commit()
             conn.close()
 
+            # === Save messages to DB ===
             save_message_for_user(user_id, 'user', user_input, session_name)
-            save_message_for_user(user_id, 'bot', ai_msg, session_name)
+            save_message_for_user(user_id, 'assistant', ai_msg, session_name)
 
+            # === Trigger summarisation if needed ===
+            SUMMARY_TRIGGER = session.get('user_settings', {}).get('summary_trigger', 10)
+
+            if len(recent_msgs) >= SUMMARY_TRIGGER:
+                updated_summary = generate_incremental_summary(summary, recent_msgs)
+                save_summary(user_id, session_name, updated_summary, last_checkpoint + len(recent_msgs))
+                print(f"[SUMMARY] Generating summary after {len(recent_msgs)} messages")
+                print(f"[SUMMARY] New summary: {updated_summary[:100]}...")
+
+            # Return response to frontend
             responses.append(ai_msg)
             return jsonify({"responses": responses})
 
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
-    
 
+ 
     @app.route('/api/casual_chat', methods=['POST'])
     @login_required()
     def casual_chat_api():
-        from modules.helpers import build_conv_history, detect_crisis_response
 
         model = session.get('user_settings', {}).get('model')
         data = request.get_json(force=True)
@@ -236,7 +288,6 @@ def register_routes(app):
         
     @app.route('/api/demo_chat', methods=['POST'])
     def demo_chat():
-        from modules.helpers import build_conv_history, detect_crisis_response
 
         data = request.get_json(force=True)
         messages = data.get("messages", [])
@@ -298,13 +349,13 @@ def register_routes(app):
     def restore_chat():
 
         data = request.get_json()
-        restore_group = data.get('restore')
+        session_name = data.get('restore')
 
         conn = get_db_connection()
         with conn:
             cursor = conn.cursor()
             cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (session['user_id'],))
-            cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name  = %s', (session['user_id'], restore_group))
+            cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name  = %s', (session['user_id'], session_name))
             conn.commit()
 
         return '', 204
@@ -327,9 +378,15 @@ def register_routes(app):
         cursor.execute("""
             UPDATE sessions SET session_name = %s WHERE user_id = %s AND session_name = %s
         """, (new_name, user_id, old_name))
+
         cursor.execute("""
             UPDATE conversations SET session = %s WHERE user_id = %s AND session = %s
         """, (new_name, user_id, old_name))
+
+        cursor.execute("""
+            UPDATE summaries SET session = %s WHERE user_id = %s AND session = %s
+        """, (new_name, user_id, old_name))
+
         conn.commit()
         conn.close()
 
@@ -392,19 +449,18 @@ def register_routes(app):
 
 
         data = request.get_json()
-        new_group_title = data.get('session_name')  # This might be None
+        session_name = data.get('session_name')  # This might be None
 
-        # Archive current messages, but only set groupTitle if one was given
         user_id = session['user_id']
         conn = get_db_connection()
         cur = conn.cursor()
 
-        if new_group_title:
+        if session_name:
             cur.execute("""
                 UPDATE conversations
                 SET archive = 1, session = %s
                 WHERE user_id = %s AND archive = 0
-            """, (new_group_title, user_id))
+            """, (session_name, user_id))
         else:
             cur.execute("""
                 UPDATE conversations
@@ -679,6 +735,46 @@ def register_routes(app):
             session['hotline'] = lookup_hotline(data['country'])
             return {"status": "ok"}, 200
         return {"error": "invalid"}, 400
+    
+
+    @app.route('/insights')
+    def insights():
+        user_id = session.get('user_id')
+        days = int(request.args.get('days', 30))
+
+        journals = get_journals_by_days(user_id, days)
+        mood_data = [(j['entry_date'], j['mood']) for j in journals if j['mood']]
+        top_themes = extract_top_themes(journals)
+        summary = generate_monthly_summary(journals)
+
+        return render_template('insights.html', moods=mood_data, themes=top_themes, summary=summary, selected_days=days)
+
+    @app.route('/api/insights_summary')
+    def api_insights_summary():
+        user_id = session.get('user_id')
+        days = int(request.args.get('days', 30))
+
+        journals = get_journals_by_days(user_id, days)
+        summary = generate_monthly_summary(journals)
+        themes = extract_top_themes(journals)
+
+        return jsonify({
+            'summary': summary,
+            'themes': themes
+        })
+
+
+    @app.route('/api/mood_data')
+    def api_mood_data():
+        user_id = session.get('user_id')
+        days = int(request.args.get('days', 30))
+
+        journals = get_journals_by_days(user_id, days)
+        moods = [(j['entry_date'], j['mood']) for j in journals if j['mood']]
+
+        return jsonify(moods)
+
+
 
 
 def login_required():

@@ -32,7 +32,7 @@ def init_db():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
                 message TEXT NOT NULL,
-                sender VARCHAR(100) NOT NULL,
+                role VARCHAR(100) NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 archive BOOLEAN DEFAULT FALSE,
                 persona VARCHAR(255),   -- CHANGE THIS TO SESSION_NAME
@@ -94,6 +94,17 @@ def init_db():
             );
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS summaries (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                session VARCHAR(255) NOT NULL,  -- or session_id if you track that
+                summary TEXT NOT NULL,
+                last_message_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        ''')
+
         conn.commit()
         populate_personas()
 
@@ -115,13 +126,13 @@ def populate_personas():
             ])
             conn.commit()
 
-def save_message_for_user(user_id, sender, message, session):
+def save_message_for_user(user_id, role, message, session):
     conn = get_db_connection()
     with conn:
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO conversations (user_id, sender, message, archive, session) VALUES (%s, %s, %s, %s, %s)',
-            (user_id, sender, message, 0, session)
+            'INSERT INTO conversations (user_id, role, message, archive, session) VALUES (%s, %s, %s, %s, %s)',
+            (user_id, role, message, 0, session)
         )
         conn.commit()
 
@@ -136,22 +147,26 @@ def load_prompts_from_db():
 
 
 def load_user_settings(user_id):
-        app_defaults = current_app.config["APP_CONFIG"].copy()
+    app_defaults = current_app.config["APP_CONFIG"].copy()
 
-        # Load user-specific overrides
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT setting_key , setting_value  FROM user_settings WHERE user_id = %s", user_id,)
-        rows = cursor.fetchall()
-        conn.close()
+    # Load user-specific overrides
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT setting_key, setting_value FROM user_settings WHERE user_id = %s", user_id)
+    rows = cursor.fetchall()
+    conn.close()
 
-        # Merge user overrides into defaults
-        for row in rows:
-            app_defaults[row['setting_key']] = row['setting_value']
+    # Merge user overrides into defaults
+    for row in rows:
+        app_defaults[row['setting_key']] = row['setting_value']
 
-        # Store merged settings in session
-        session['user_settings'] = app_defaults
-        dumpConfig()
+    # Handle summary_count (formerly msg_retention)
+    if 'summary_count' not in app_defaults:
+        app_defaults['summary_count'] = 100  # Default value if not set
+
+    # Store merged settings in session
+    session['user_settings'] = app_defaults
+    dumpConfig()
 
 
 def dumpConfig():
@@ -159,6 +174,7 @@ def dumpConfig():
         print(f"{k}={v}")
 
 def get_next_session_name(user_id):
+    
     conn = get_db_connection()
     with conn:
         cursor = conn.cursor()
@@ -181,6 +197,7 @@ def get_next_session_name(user_id):
             return f"session-{session_counter}"
 
 def increment_session_counter(user_id):
+
     conn = get_db_connection()
     with conn:
         cursor = conn.cursor()
@@ -195,3 +212,70 @@ def increment_session_counter(user_id):
 def get_next_session_name_api(user_id):
     session_name = get_next_session_name(user_id)
     return jsonify({"defaultName": session_name})
+
+def get_last_summary(user_id, session):
+
+    conn = get_db_connection()
+    query = """
+        SELECT summary FROM summaries
+        WHERE user_id = %s AND session = %s
+        ORDER BY last_message_id DESC
+        LIMIT 1
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(query, (user_id, session))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+
+def get_last_summary_checkpoint(user_id, session):
+
+    conn = get_db_connection()
+    query = """
+        SELECT last_message_id FROM summaries
+        WHERE user_id = %s AND session = %s
+        ORDER BY last_message_id DESC
+        LIMIT 1
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(query, (user_id, session))
+        row = cursor.fetchone()
+        return row[0] if row else 0
+
+
+def get_messages_after(user_id, session, last_msg_id):
+
+    conn = get_db_connection()
+    query = """
+        SELECT role, message FROM conversations
+        WHERE user_id = %s AND session = %s AND id > %s
+        ORDER BY id ASC
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(query, (user_id, session, last_msg_id))
+        rows = cursor.fetchall()
+        return [{"role": r["role"], "content": r["message"]} for r in rows]
+
+
+def save_summary(user_id, session, summary_text, last_msg_id):
+
+    conn = get_db_connection()
+    query = """
+        INSERT INTO summaries (user_id, session, summary, last_message_id, created_at)
+        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(query, (user_id, session, summary_text, last_msg_id))
+        conn.commit()
+
+def get_journals_by_days(user_id, days):
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor.execute("""
+        SELECT entry_date, mood, entry
+        FROM journals
+        WHERE user_id = %s AND entry_date >= CURDATE() - INTERVAL %s DAY
+        ORDER BY entry_date
+    """, (user_id, days))
+    return cursor.fetchall()
+

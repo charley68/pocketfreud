@@ -14,6 +14,9 @@ def load_properties(filepath):
             line = line.strip()
             if line and not line.startswith("#"):  # Ignore empty lines and comments
                 key, value = line.split("=", 1)
+                # Replace msg_retention with summary_count
+                if key == "msg_retention":
+                    key = "summary_count"
                 properties[key.strip()] = value.strip()
     return properties
 

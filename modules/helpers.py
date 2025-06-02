@@ -3,12 +3,16 @@ import datetime
 import requests
 from flask import session
 from datetime import datetime
+from openai import OpenAI
 import os
+
 from modules.db import load_prompts_from_db
 from flask import session, current_app
 
+
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 PROMPTS = load_prompts_from_db()
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 def is_valid_email(email):
     return bool(EMAIL_REGEX.match(email))
@@ -17,7 +21,6 @@ def inject_base_url():
     return dict(BASE_URL=current_app.config.get('BASE_URL', ''))
 
 def inject_env():
-    import os
     return dict(ENV=os.getenv("ENV", "prod"))
 
 def pick_initial_greeting(username):
@@ -96,34 +99,85 @@ def detect_crisis_response(user_input):
 
 
 
+
 def call_llm_api(model, messages, temperature=0.7):
-
     if model.startswith("claude"):
-        pass
-        # use Anthropic SDK
-    else:
+        # Claude logic here (future)
+        raise NotImplementedError("Claude support not implemented yet.")
+
+    elif model.startswith("ollama:"):
+        # Local Ollama support (optional)
+        raise NotImplementedError("Ollama support not implemented yet.")
+
+    elif model.startswith("gpt-"):
         try:
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature
-                }
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=2000
             )
-            result = response.json()
-
-            # Basic error guard
-            if "choices" not in result or not result["choices"]:
-                raise ValueError("Invalid OpenAI response")
-
-            message = result["choices"][0]["message"]["content"]
-            usage = result.get("usage", {})
-            return message, usage
-
+            content = response.choices[0].message.content
+            usage = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
+            return content, usage
         except Exception as e:
-            raise RuntimeError(f"LLM API call failed: {e}")
+            raise RuntimeError(f"OpenAI SDK call failed: {e}")
+
+    else:
+        raise ValueError(f"Unsupported model: {model}")
+
+
+
+def generate_incremental_summary(previous_summary, new_messages):
+    prompt = []
+
+    if previous_summary:
+        prompt.append({
+            "role": "system",
+            "content": f"The previous summary was: \"{previous_summary}\". Update or extend it based on the following new messages."
+        })
+    else:
+        prompt.append({
+            "role": "system",
+            "content": "Summarise the following conversation in 1–2 sentences, focusing on the user's emotional themes."
+        })
+
+    prompt += new_messages
+    prompt.append({
+        "role": "system",
+        "content": "Provide a concise updated summary."
+    })
+
+    message, _ = call_llm_api(get_setting("model"), prompt)
+    return message
+
+
+def generate_monthly_summary(journals):
+    entries = [j['entry'] for j in journals if j['entry']]
+    if not entries:
+        return "No journal entries found for this period."
+
+    text_block = "\n".join(entries[-10:])
+    messages = [
+        {"role": "system", "content": "You are a gentle, empathetic mental health assistant who summarizes journals with care and insight."},
+        {"role": "user", "content": f"Summarize the following journal entries and offer a gentle reflection:\n\n{text_block}"}
+    ]
+
+    content, usage = call_llm_api("gpt-3.5-turbo", messages)
+    return content  # ✅ content is already the final string you want
+
+
+
+
+def extract_top_themes(journals):
+    keywords = {"stress": 0, "work": 0, "family": 0, "anxiety": 0, "tired": 0}
+    for j in journals:
+        entry = (j.get('entry') or '').lower()
+        for k in keywords:
+            if k in entry:
+                keywords[k] += 1
+    return [k.capitalize() for k, v in sorted(keywords.items(), key=lambda x: -x[1]) if v > 0]

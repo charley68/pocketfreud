@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Insights – PocketFreud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='insights.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  
+</head>
+
+<body class="prod-env">
+
+  <!-- ✅ Header -->
+  <div class="top-bar authenticated">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
+    <nav class="nav-buttons">
+      <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
+    </nav>
+  </div>
+
+  <div class="insights-container">
+
+    <div class="range-selector">
+      <a href="{{ url_for('insights', days=7) }}" class="range-btn {{ 'active' if selected_days == 7 else '' }}">7D</a>
+      <a href="{{ url_for('insights', days=30) }}" class="range-btn {{ 'active' if selected_days == 30 else '' }}">30D</a>
+      <a href="{{ url_for('insights', days=90) }}" class="range-btn {{ 'active' if selected_days == 90 else '' }}">90D</a>
+    </div>
+
+    <section class="insights-section">
+      <h2>Mood Over Time</h2>
+      <div style="position: relative; height: 300px; width: 100%;">
+        <canvas id="moodChart"></canvas>
+      </div>
+    </section>
+
+    <section class="insights-section">
+      <h2>Top Emotional Themes</h2>
+      <div id="themesContainer">
+        <p>Loading themes...</p>
+      </div>
+    </section>
+
+    <section class="insights-section">
+  <h2>AI Reflection</h2>
+  <div class="summary-box" style="height: auto; max-width: 100%; box-sizing: border-box;">
+    <div id="summaryBox" class="summary-textarea" style="white-space: pre-wrap; overflow-y: visible; height: auto; max-width: 100%; box-sizing: border-box;">Loading summary...</div>
+  </div>
+</section>
+
+    <footer class="bottom-nav">
+      <a href="{{ url_for('home') }}">
+        <div><i class="icon">🏠</i><span>Home</span></div>
+      </a>
+      <a href="#" onclick="window.print()">
+        <div><i class="icon">📄</i><span>Download</span></div>
+      </a>
+    </footer>
+
+    <div class="loading-overlay">Loading insights...</div>
+  </div>
+
+  <script>
+    const selectedDays = {{ selected_days }};
+
+    async function loadInsights() {
+      document.querySelector('.loading-overlay').style.display = 'block';
+      try {
+        const [summaryRes, moodRes] = await Promise.all([
+          fetch(`/api/insights_summary?days=${selectedDays}`),
+          fetch(`/api/mood_data?days=${selectedDays}`)
+        ]);
+
+        const summaryData = await summaryRes.json();
+        const moodData = await moodRes.json();
+
+        requestIdleCallback(() => {
+          document.getElementById('summaryBox').textContent = summaryData.summary;
+        });
+
+        const themesContainer = document.getElementById('themesContainer');
+        if (summaryData.themes && summaryData.themes.length > 0) {
+          const list = summaryData.themes.map(t => `<li>🔹 ${t}</li>`).join('');
+          themesContainer.innerHTML = `<ul class="themes-list">${list}</ul>`;
+        } else {
+          themesContainer.innerHTML = `<p>No recurring themes detected yet.</p>`;
+        }
+
+        const labels = moodData.map(entry => new Date(entry[0]).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }));
+        const moodValues = moodData.map(entry => {
+          const map = { 'happy': 2, 'neutral': 1, 'sad': 0, 'anxious': 0.5, 'angry': -1 };
+          return map[entry[1]] ?? 1;
+        });
+
+        new Chart(document.getElementById("moodChart"), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Mood Over Time",
+            data: moodValues,
+            borderColor: "#6C63FF",
+            backgroundColor: "#6C63FF33",
+            pointRadius: 4,
+            fill: false,
+            tension: 0.2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              min: -1,
+              max: 2.5,
+              ticks: {
+                stepSize: 1,
+                callback: function(value) {
+                  const labels = ['Angry', 'Sad', 'Anxious', 'Neutral', 'Happy'];
+                  return labels[value + 1] || '';
+                }
+              }
+            }
+          }
+        }
+      });
+
+      } catch (err) {
+        console.error("Error loading insights:", err);
+        document.getElementById("summaryBox").value = "Error loading summary.";
+        document.getElementById("themesContainer").innerHTML = "<p>Error loading themes.</p>";
+      } finally {
+        document.querySelector('.loading-overlay').style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.loading-overlay').style.display = 'block';
+    requestIdleCallback(loadInsights);
+});
+  </script>
+</body>
+</html>
