@@ -5,6 +5,8 @@ from flask import Flask, session, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 from modules.db import load_prompts_from_db, init_db, get_next_session_name_api, increment_session_counter
 from modules.routes import register_routes
+from modules.extensions import mail
+
 
 # Function to load properties file
 def load_properties(filepath):
@@ -49,6 +51,19 @@ app.config.update(
     SESSION_COOKIE_NAME="pocketfreud_test" if is_test else "pocketfreud_prod",
     TEMPLATES_AUTO_RELOAD=True  # remove in production
 )
+
+app.config.update(
+    MAIL_SERVER='smtp.hostinger.com',
+    MAIL_PORT=465,
+    MAIL_USE_SSL=True,         # ✅ MUST be True for Port 465
+    MAIL_USE_TLS=False,   
+    MAIL_USERNAME='admin@pocketfreud.com',
+    MAIL_PASSWORD='Freud2306!',
+    MAIL_DEFAULT_SENDER='PocketFreud <admin@pocketfreud.com>',
+    MAIL_DEBUG=True 
+)
+
+mail.init_app(app)
 
 # ----------------- 5. LOG FILE PATHS -----------------
 logging.info(f"[STATIC FOLDER] {app.static_folder}")

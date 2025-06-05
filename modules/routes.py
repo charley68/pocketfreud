@@ -8,6 +8,10 @@ from flask import (
     url_for, session, flash, current_app
 )
 
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
 from modules.db import (
     get_db_connection,
     save_message_for_user,
@@ -31,8 +35,9 @@ from modules.helpers import (
     detect_crisis_response,
     generate_incremental_summary,
     extract_top_themes,
-    generate_monthly_summary
-
+    generate_monthly_summary,
+    send_verification_email,
+    generate_email_token
 )
 
 
@@ -58,13 +63,17 @@ def register_routes(app):
     @app.route('/')
     def home():
         if 'user_id' in session:
-            return render_template('home.html', username=session.get('username'))
+            if not session.get('username'):
+                session.clear()  # wipe corrupt session
+                return redirect(url_for('home'))
+            return render_template('home.html', username=session['username'])
         else:
             return render_template('index.html')
 
     @app.route('/about')
     def about():
         return render_template('learn_more.html')
+    
 
     @app.route('/logout')
     def logout():
@@ -80,45 +89,6 @@ def register_routes(app):
     def debug():
         return "DEBUG ROUTE OK", 200
 
-    # -------------------- AUTH --------------------
-    @app.route('/signup', methods=['GET', 'POST'])
-    def signup():
-        if request.method == 'POST':
-            username = request.form['username']
-            email = request.form['email'].strip().lower()
-            password = request.form['password']
-            captcha_response = request.form.get("g-recaptcha-response")
-
-            if not is_valid_email(email):
-                flash('Invalid email format.')
-                return redirect(url_for('signup'))
-            if not captcha_response:
-                flash("Please complete the CAPTCHA.")
-                return redirect(url_for("signup"))
-
-            r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
-                "secret": os.getenv("RECAPTCHA_SECRET_KEY"),
-                "response": captcha_response,
-                "remoteip": request.remote_addr
-            })
-            if not r.json().get("success"):
-                flash("CAPTCHA failed.")
-                return redirect(url_for("signup"))
-
-            conn = get_db_connection()
-            try:
-                cursor = conn.cursor()
-                cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)',
-                               (username, email, password))
-                conn.commit()
-                return render_template('signup_success.html', username=username)
-            except Exception:
-                flash('Email already exists.')
-                return redirect(url_for('signup'))
-            finally:
-                conn.close()
-
-        return render_template('signup.html')
 
     @app.route('/signin', methods=['GET', 'POST'])
     def signin():
@@ -128,12 +98,19 @@ def register_routes(app):
 
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute('SELECT id, username, age, sex, bio FROM users WHERE email = %s AND password = %s',
-                           (email, password))
+            cursor.execute('SELECT id, username, age, sex, bio, password, verified FROM users WHERE email = %s', (email,))
             profile = cursor.fetchone()
-            conn.close()
+            cursor.close()
 
-            if profile:
+            if not profile:
+                flash("No account found with that email.")
+                return redirect(url_for('signin'))
+        
+            if not profile['verified']:
+                flash(f"Please verify your email before signing in. " f"<a href='{url_for('resend_verification', email=email)}'>Resend verification email</a>.")
+                return redirect(url_for('signin'))
+        
+            if  check_password_hash(profile['password'], password):
                 session['user_id'] = profile['id']
                 session['username'] = profile['username']
                 session['user_profile'] = {
@@ -152,6 +129,39 @@ def register_routes(app):
                 return redirect(url_for('signin'))
 
         return render_template('signin.html')
+
+
+    @app.route('/resend_verification')
+    def resend_verification():
+        email = request.args.get('email', '').strip().lower()
+        if not email:
+            flash("Missing email address.")
+            return redirect(url_for('signin'))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, verified FROM users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            flash("No account found with that email.")
+            return redirect(url_for('signin'))
+
+        if user['verified']:
+            flash("Your email is already verified.")
+            return redirect(url_for('signin'))
+
+        # Generate new token and update DB
+        token = generate_email_token()
+        cursor.execute("UPDATE users SET email_token = %s WHERE id = %s", (token, user['id']))
+        conn.commit()
+        cursor.close()
+
+        send_verification_email(email, user['username'], token)
+        flash("A new verification email has been sent.")
+        return redirect(url_for('signin'))
+
+
 
     # -------------------- CHAT --------------------
     @app.route('/therapy')
@@ -174,7 +184,7 @@ def register_routes(app):
         messages = cursor.fetchall()
         conn.close()
 
-        return render_template('bot-chat.html',  is_demo=False, is_therapy=True, is_casual = False, messages=messages, username=session.get('username'), sessionName=sessionName, sessionType=persona, user_settings=session.get('user_settings', {}))
+        return render_template('bot-chat.html',  is_therapy=True, is_casual = False, messages=messages, username=session.get('username'), sessionName=sessionName, sessionType=persona, user_settings=session.get('user_settings', {}))
 
 
     @app.route('/api/chat', methods=['POST'])
@@ -285,7 +295,7 @@ def register_routes(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
-        
+    """
     @app.route('/api/demo_chat', methods=['POST'])
     def demo_chat():
 
@@ -312,8 +322,8 @@ def register_routes(app):
         except Exception as e:
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
+    """
 
-        
     @app.route('/settings')
     @login_required()
     def settings():
@@ -636,16 +646,16 @@ def register_routes(app):
 
         return render_template('journal_calendar.html', journal_dates=journal_dates)
 
-    @app.route('/demo')
+    """@app.route('/demo')
     def demo():
         return render_template("bot-chat.html", is_demo=True, is_casual=False, is_therapy=False, sessionName="Demo", sessionType="Demo",  user_settings=current_app.config.get("APP_CONFIG", {}))
-    
+    """
 
 
     @app.route('/casual')
     @login_required()
     def casual_chat():
-        return render_template("bot-chat.html", is_casual=True, is_demo=False, is_therapy=False, sessionName="Casual", sessionType="Casual Chat",user_settings=session.get('user_settings', {}))
+        return render_template("bot-chat.html", is_casual=True, is_therapy=False, sessionName="Casual", sessionType="Casual Chat",user_settings=session.get('user_settings', {}))
 
     @app.route('/api/current_session')
     def current_session():
@@ -695,6 +705,31 @@ def register_routes(app):
             conn.commit()
 
         return jsonify({"status": "created", "session_name": session_name})
+
+
+
+    @app.route('/api/delete_session', methods=['POST'])
+    @login_required()
+    def delete_session():
+
+        data = request.get_json()
+        session_name = data.get('session_name')
+
+        if not session_name:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        conn = get_db_connection()
+        with conn:
+            cursor = conn.cursor()
+            # Mark existing sessions as not current
+            cursor.execute('DELETE from sessions WHERE user_id = %s and session_name = %s', (session['user_id'],session_name))
+            conn.commit()
+
+        return jsonify({"status": "deleted", "session_name": session_name})
+
+
+
+
 
 
     @app.route('/api/user_settings', methods=['POST'])
@@ -774,6 +809,139 @@ def register_routes(app):
 
         return jsonify(moods)
 
+
+
+    @app.route('/signup_with_plan', methods=['GET', 'POST'])
+    def signup_with_plan():
+
+        plan = request.args.get('plan')
+        print(f"PLAN SELECTED: {plan}")
+        if request.method == 'GET':
+            # User came from /subscribe
+            if plan not in ['basic', 'professional', 'premium']:
+                flash(f"Invalid plan {plan} selected.")
+                return redirect(url_for('show_subscription_options'))
+            return render_template('signup_with_plan.html', selected_plan=plan)
+
+
+
+        # POST method - handle form submission
+        plan = request.form.get('plan')  # From hidden input field
+
+        name = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+
+        # Check if email already exists
+        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered.")
+            return redirect(url_for('signup_with_plan', plan=plan))
+
+        # Create user
+        hashed_pw = generate_password_hash(password)
+        token = generate_email_token()
+        cursor.execute(
+            "INSERT INTO users (username, email, password, email_token) VALUES (%s, %s, %s, %s)",
+            (name, email, hashed_pw, token)
+        )
+        user_id = cursor.lastrowid
+
+        # Create subscription
+        billing_cycle = None
+        if plan != 'basic':
+            billing_cycle = 'monthly'  # or ask for this later in profile/settings
+
+        cursor.execute(
+            "INSERT INTO subscriptions (user_id, plan_type, billing_cycle) VALUES (%s, %s, %s)",
+            (user_id, plan, billing_cycle)
+        )
+
+        conn.commit()
+        conn.close()
+
+        print(f"Send email with verification token {token}")
+        send_verification_email(email, name, token)
+        
+        return render_template('signup_success.html', username=name)
+    
+
+
+    @app.route('/subscribe')
+    def show_subscription_options():
+        return render_template('subscription.html', change_mode=False)
+    
+
+    @app.route('/change_subscription')
+    def change_subscription():
+        if 'user_id' not in session:
+            flash("Please log in to change your subscription.")
+            return redirect(url_for('signin'))
+        return render_template(
+            'subscription.html',
+            change_mode=True,
+            current_plan=session['user_subscription']['plan_type'],
+            available_plans=['basic', 'professional', 'premium'])
+
+
+
+    @app.route('/update_subscription/<plan>')
+    def update_subscription(plan):
+        if plan not in ['basic', 'professional', 'premium']:
+            flash("Invalid plan selected.")
+            return redirect(url_for('change_subscription'))
+
+        user_id = session.get('user_id')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Update the subscription
+        cursor.execute("""
+            UPDATE subscriptions
+            SET plan_type = %s, updated_at = NOW()
+            WHERE user_id = %s
+        """, (plan, user_id))
+        conn.commit()
+        conn.close()
+
+        # Update session
+        session['user_subscription']['plan_type'] = plan
+
+        flash(f"Subscription updated to {plan.upper()}")
+        return redirect(url_for('home'))
+
+    @app.route('/verify_email')
+    def verify_email():
+        token = request.args.get('token')
+        if not token:
+            flash("Invalid verification link.")
+            return redirect(url_for('signin'))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE email_token = %s", (token,))
+        user = cursor.fetchone()
+
+        if user:
+            cursor.execute("""
+                UPDATE users
+                SET verified = TRUE, email_token = NULL
+                WHERE id = %s
+            """, (user['id'],))
+
+            conn.commit()
+            conn.close()
+
+            flash("Email confirmed. You can now log in.")
+            return redirect(url_for('signin'))
+        else:
+            flash("Verification failed or already completed.")
+            return redirect(url_for('signin'))
 
 
 

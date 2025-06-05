@@ -2,12 +2,17 @@ import re
 import datetime
 import requests
 from flask import session
+from flask import url_for
+from flask_mail import Mail, Message
 from datetime import datetime
 from openai import OpenAI
 import os
+import secrets
 
+from modules.extensions import mail
 from modules.db import load_prompts_from_db
 from flask import session, current_app
+from flask import render_template
 
 
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
@@ -181,3 +186,16 @@ def extract_top_themes(journals):
             if k in entry:
                 keywords[k] += 1
     return [k.capitalize() for k, v in sorted(keywords.items(), key=lambda x: -x[1]) if v > 0]
+
+
+def generate_email_token():
+    return secrets.token_urlsafe(32)
+
+def send_verification_email(user_email, username, token):
+    confirm_url = url_for('verify_email', token=token, _external=True)
+    subject = "Welcome to PocketFreud – Confirm Your Email"
+    
+    html = render_template("emails/welcome_email.html", username=username, confirm_url=confirm_url)
+    
+    msg = Message(subject, recipients=[user_email], html=html)
+    mail.send(msg)

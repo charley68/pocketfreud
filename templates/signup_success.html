@@ -2,21 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Welcome to PocketFreud</title>
+  <title>Confirm Your Email – PocketFreud</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='authenticate.css') }}">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom, #1d2636, #2a3b52);
+      color: #f0f4f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
+    .confirmation-box {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      max-width: 540px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+    }
 
+    .confirmation-box h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #ffffff;
+    }
+
+    .confirmation-box p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      color: #d8e9f8;
+      margin-bottom: 1.5rem;
+    }
+
+    .confirmation-box strong {
+      color: #ffffff;
+    }
+
+    .confirmation-box a {
+      display: inline-block;
+      background-color: #6e60e6;
+      color: white;
+      text-decoration: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    .confirmation-box a:hover {
+      background-color: #574dc4;
+    }
+
+    @media (max-width: 600px) {
+      .confirmation-box {
+        padding: 2rem 1.5rem;
+      }
+
+      .confirmation-box h2 {
+        font-size: 1.6rem;
+      }
+
+      .confirmation-box p {
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
 
 <body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-  <div class="success-box">
+  <div class="confirmation-box">
     <h2>🎉 Account Created!</h2>
-    <p>Thanks for signing up, <strong>{{ username }}</strong>! You can now sign in and start chatting with PocketFreud.</p>
-    <a href="{{ url_for('signin') }}">Go to Sign In</a>
+    <p>Thanks for signing up, <strong>{{ username }}</strong>!</p>
+    <p>We've sent you a confirmation email. Please check your inbox and spam folder for a message from <strong>admin@pocketfreud.com</strong>. You’ll need to click the link in that email to activate your account.</p>
+    <p>Once confirmed, you’ll be able to start journaling, tracking your mood, and chatting with PocketFreud.</p>
+    <a href="{{ url_for('signin') }}">Return to Sign In</a>
   </div>
 
 </body>

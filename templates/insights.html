@@ -7,24 +7,60 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='insights.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-  
+
+  <style>
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: #333;
+    }
+
+    .spinner {
+      border: 6px solid #eee;
+      border-top: 6px solid #6c63ff;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 
 <body class="prod-env">
-
-  <!-- ✅ Header -->
   <div class="top-bar authenticated">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
     <div class="branding">
       <h1 class="app-title">PocketFreud</h1>
     </div>
-    <nav class="nav-buttons">
-      <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
-    </nav>
+    {% if session['user_subscription'] %}
+    <div>
+      <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
+        {% if session['user_subscription']['plan_type'] == 'basic' %}BASIC
+        {% elif session['user_subscription']['plan_type'] == 'professional' %}PRO
+        {% elif session['user_subscription']['plan_type'] == 'premium' %}PREM
+        {% endif %}
+      </a>
+    </div>
+    {% endif %}
   </div>
 
   <div class="insights-container">
-
     <div class="range-selector">
       <a href="{{ url_for('insights', days=7) }}" class="range-btn {{ 'active' if selected_days == 7 else '' }}">7D</a>
       <a href="{{ url_for('insights', days=30) }}" class="range-btn {{ 'active' if selected_days == 30 else '' }}">30D</a>
@@ -34,7 +70,7 @@
     <section class="insights-section">
       <h2>Mood Over Time</h2>
       <div style="position: relative; height: 300px; width: 100%;">
-        <canvas id="moodChart"></canvas>
+        <canvas id="moodChart" style="display:none;"></canvas>
       </div>
     </section>
 
@@ -46,11 +82,11 @@
     </section>
 
     <section class="insights-section">
-  <h2>AI Reflection</h2>
-  <div class="summary-box" style="height: auto; max-width: 100%; box-sizing: border-box;">
-    <div id="summaryBox" class="summary-textarea" style="white-space: pre-wrap; overflow-y: visible; height: auto; max-width: 100%; box-sizing: border-box;">Loading summary...</div>
-  </div>
-</section>
+      <h2>AI Reflection</h2>
+      <div class="summary-box" style="height: auto; max-width: 100%; box-sizing: border-box;">
+        <div id="summaryBox" class="summary-textarea" style="white-space: pre-wrap; overflow-y: visible; height: auto; max-width: 100%; box-sizing: border-box;">Loading summary...</div>
+      </div>
+    </section>
 
     <footer class="bottom-nav">
       <a href="{{ url_for('home') }}">
@@ -61,14 +97,17 @@
       </a>
     </footer>
 
-    <div class="loading-overlay">Loading insights...</div>
+    <!-- ✅ Spinner overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <p>Loading insights...</p>
+    </div>
   </div>
 
   <script>
     const selectedDays = {{ selected_days }};
 
     async function loadInsights() {
-      document.querySelector('.loading-overlay').style.display = 'block';
       try {
         const [summaryRes, moodRes] = await Promise.all([
           fetch(`/api/insights_summary?days=${selectedDays}`),
@@ -96,59 +135,62 @@
           return map[entry[1]] ?? 1;
         });
 
-        new Chart(document.getElementById("moodChart"), {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Mood Over Time",
-            data: moodValues,
-            borderColor: "#6C63FF",
-            backgroundColor: "#6C63FF33",
-            pointRadius: 4,
-            fill: false,
-            tension: 0.2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'top'
-            }
+        const ctx = document.getElementById("moodChart").getContext("2d");
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Mood Over Time",
+              data: moodValues,
+              borderColor: "#6C63FF",
+              backgroundColor: "#6C63FF33",
+              pointRadius: 4,
+              fill: false,
+              tension: 0.2
+            }]
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              min: -1,
-              max: 2.5,
-              ticks: {
-                stepSize: 1,
-                callback: function(value) {
-                  const labels = ['Angry', 'Sad', 'Anxious', 'Neutral', 'Happy'];
-                  return labels[value + 1] || '';
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top'
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                min: -1,
+                max: 2.5,
+                ticks: {
+                  stepSize: 1,
+                  callback: function(value) {
+                    const labels = ['Angry', 'Sad', 'Anxious', 'Neutral', 'Happy'];
+                    return labels[value + 1] || '';
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
 
+        // Reveal canvas, hide loader
+        document.getElementById("moodChart").style.display = "block";
       } catch (err) {
         console.error("Error loading insights:", err);
-        document.getElementById("summaryBox").value = "Error loading summary.";
+        document.getElementById("summaryBox").textContent = "Error loading summary.";
         document.getElementById("themesContainer").innerHTML = "<p>Error loading themes.</p>";
       } finally {
-        document.querySelector('.loading-overlay').style.display = 'none';
+        document.getElementById('loadingOverlay').style.display = 'none';
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('.loading-overlay').style.display = 'block';
-    requestIdleCallback(loadInsights);
-});
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      requestIdleCallback(loadInsights);
+    });
   </script>
 </body>
 </html>

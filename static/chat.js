@@ -84,14 +84,6 @@ function closeSuggestions() {
   document.getElementById('suggestionsModal').classList.remove('show');
 }
 
-function openDemoInfo() {
-    document.getElementById('demoInfoModal').classList.add('show');
-}
-
-function closeDemoInfo() {
-    document.getElementById('demoInfoModal').classList.remove('show');
-}
-
 
   function deleteModal() {
     document.getElementById('deleteConfirmModal').classList.add('show');
@@ -138,16 +130,15 @@ function closeDemoInfo() {
     chatBox.scrollTop = chatBox.scrollHeight;
   
     let endpoint;
-    if (IS_DEMO) {
-      endpoint = "/api/demo_chat";
-    } else if (IS_CASUAL) {
+    
+    if (IS_CASUAL) {
       endpoint = "/api/casual_chat";
     } else {
       endpoint = "/api/chat";
     }
   
     let payload;
-    if (IS_DEMO || IS_CASUAL) {
+    if ( IS_CASUAL) {
       memoryMessages.push({ role: "user", content: userText });
       payload = {
         messages: memoryMessages,
@@ -233,7 +224,7 @@ function closeDemoInfo() {
             }
           }, typing_delay);
   
-          if (IS_DEMO || IS_CASUAL) {
+          if (IS_CASUAL) {
             memoryMessages.push({ role: "assistant", content: reply });
           }
         }

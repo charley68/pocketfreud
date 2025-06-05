@@ -4,97 +4,134 @@
   <meta charset="UTF-8">
   <title>Learn More - PocketFreud</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   <style>
-    .learn-container {
-      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.08));
-      border-radius: 18px;
-      padding: 2rem 1.5rem;
-      margin: 2rem 1rem;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      color: #f5faff;
-      text-align: left;
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-      backdrop-filter: blur(4px);
-    }
 
-    .learn-title {
-      font-size: 2rem;
+
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
       font-weight: 700;
-      text-align: center;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+      color: #dce9f5;
+    }
+
+    .section {
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 1.8rem;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+
+    .section p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #d3e7f6;
       margin-bottom: 1.5rem;
-      color: white;
     }
 
-    .learn-container p {
-      font-size: 1.15rem;
-      line-height: 1.65;
+    .features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .features-list li {
       margin-bottom: 1.2rem;
-      color: #e8f1f9;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: start;
     }
 
-    .learn-container strong {
-      color: white;
+    .features-list li span {
+      font-size: 1.4rem;
+      margin-right: 0.75rem;
     }
 
-    .footer-text {
+    footer.footer-text {
       text-align: center;
       font-size: 0.9rem;
-      color: #c7e1f9;
-      margin: 2rem 0;
+      color: #aacbe4;
+      margin: 4rem 0 2rem;
     }
 
-    .footer-text a {
-      color: #7BAFD4;
+    footer.footer-text a {
+      color: #88bde7;
       text-decoration: none;
     }
 
-    .footer-text a:hover {
+    footer.footer-text a:hover {
       text-decoration: underline;
     }
 
     @media (max-width: 600px) {
-      .learn-container {
-        padding: 1.5rem 1rem;
+      .hero h1 {
+        font-size: 2rem;
       }
-
-      .learn-title {
-        font-size: 1.6rem;
-      }
-
-      .learn-container p {
-        font-size: 1rem;
+      .section h2 {
+        font-size: 1.5rem;
       }
     }
   </style>
 </head>
 
-<body class="prod-env learn-page">
 
-  <!-- ✅ Header -->
-  <div class="top-bar authenticated">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
-    <div class="branding">
-      <h1 class="app-title">PocketFreud</h1>
-    </div>
-    <nav class="nav-buttons">
-      <a class="logout-button" href="{{ url_for('home') }}">Home</a>
-    </nav>
-  </div>
+  <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-  <!-- ✅ Main Content -->
-  <div class="learn-container">
-    <h2 class="learn-title">💡 Learn More</h2>
+    <header class="top-bar">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+      <div class="branding">
+        <h1 class="app-title">PocketFreud</h1>
+      </div>
+    
+      <nav class="logout-button">
+        <a href="{{ url_for('home') }}">Home</a>
+      </nav>
+    </header>
 
-    <p><strong>PocketFreud</strong> is your AI companion for emotional support and mental well-being. Whether you're looking for someone to talk to, keep a journal, or reflect on your feelings, PocketFreud is here 24/7 — non-judgmental, private, and always listening.</p>
 
-    <p>Use it daily to track your mood, express your thoughts, or simply vent in a safe, supportive space. You can revisit your previous chats, set goals for emotional growth, or just check in with how you're feeling each day.</p>
 
-    <p><strong>No diagnosis. No pressure.</strong> Just a helpful companion to make life’s mental load feel a little lighter.</p>
-  </div>
+  <!-- ✅ Hero Section -->
+  <section class="hero">
+    <h1>💡 Learn More About PocketFreud</h1>
+    <p>Your gentle AI companion for emotional support, mood tracking, and private journaling — available 24/7 with no judgment or pressure</p>
+  </section>
+
+  <!-- ✅ What Is It -->
+  <section class="section">
+    <h2>🎯 What Is PocketFreud?</h2>
+    <p>PocketFreud is designed to offer a calming, intelligent presence when you need to reflect, talk, or just feel heard. It’s not a therapist — it’s a compassionate assistant helping you through your emotional ups and downs.</p>
+  </section>
+
+  <!-- ✅ Features -->
+  <section class="section">
+    <h2>✨ Key Features</h2>
+    <ul class="features-list">
+      <li><span>😊</span> Mood tracking with visual charts and trends.</li>
+      <li><span>📓</span> Private journaling with emotional summaries.</li>
+      <li><span>🧠</span> Smart conversation with AI-driven reflections.</li>
+      <li><span>🕊️</span> Light Chat mode for casual venting (nothing saved).</li>
+      <li><span>🔐</span> No personal info required — stay anonymous if you choose.</li>
+    </ul>
+  </section>
+
+  <!-- ✅ Privacy -->
+  <section class="section">
+    <h2>🔒 Your Privacy Comes First</h2>
+    <p>Your conversations are yours. PocketFreud stores minimal data, encrypted and never sold. You choose what to share, and you can delete anything at any time.</p>
+  </section>
 
   <!-- ✅ Footer -->
   <footer class="footer-text">

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Up – PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='authenticate.css') }}">
+  <style>
+    .plans {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .plan {
+      padding: 16px;
+      border-radius: 12px;
+      background-color: white;
+      border: 2px solid #e0d8f3;
+    }
+    .plan.professional { background-color: #d8eaff; }
+    .plan.premium { background-color: #e2d6ff; }
+    .plan h3 { margin: 0; }
+    .plan p { margin: 4px 0; }
+    .plan input[type="radio"] { margin-top: 10px; }
+
+    .input-wrapper input,
+    .password-wrapper input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+
+    .info-box {
+      background-color: #f0f4ff;
+      border: 1px solid #ccd8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 1rem;
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .flash-messages {
+      margin-top: 1rem;
+    }
+
+    .flash {
+      background-color: #fdecea;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+
+<body class="signin-body {{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+  <a href="{{ url_for('show_subscription_options') }}" class="back-button">← Back</a>
+
+  <div class="signin-container">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="logo" alt="PocketFreud Logo">
+    
+    <h2>Create Account</h2>
+    <p>You're signing up for the <strong>{{ selected_plan|capitalize }}</strong> plan</p>
+
+    <div class="info-box">
+      After signing up, you’ll receive a confirmation email with a link to activate your account. Please check your inbox and spam folder.
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for message in messages %}
+            <div class="flash">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('signup_with_plan') }}" method="post">
+      <input type="hidden" name="plan" value="{{ selected_plan }}">
+
+      <div class="input-wrapper">
+        <input type="text" name="username" placeholder="Your Name" required>
+      </div>
+
+      <div class="input-wrapper">
+        <input type="email" name="email" placeholder="Email Address" required>
+      </div>
+
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <span class="toggle-password" onclick="togglePassword()">👁️</span>
+      </div>
+
+      <button class="btn" type="submit">Sign Up</button>
+    </form>
+
+    <div class="signup-link">
+      Already have an account? <a href="{{ url_for('signin') }}">Sign In</a>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const input = document.getElementById("password");
+      input.type = input.type === "password" ? "text" : "password";
+    }
+  </script>
+</body>
+</html>

@@ -9,11 +9,32 @@
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-<div class="calendar-page">
 
-  <div class="calendar-header">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="calendar-logo">
-    <h1>My Journal</h1>
+
+  <div class="top-bar authenticated">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    
+    <div class="branding">
+      <h1 class="app-title">PocketFreud</h1>
+    </div>
+  
+    {% if session['user_subscription'] %}
+      <div>
+
+        <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
+          {% if session['user_subscription']['plan_type'] == 'basic' %}BASIC
+          {% elif session['user_subscription']['plan_type'] == 'professional' %}PRO
+          {% elif session['user_subscription']['plan_type'] == 'premium' %}PREM
+          {% endif %}
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+
+
+  <div class="calendar-page">
+  
     <h2 id="calendarMonth"></h2>
 
     <div class="month-nav">
@@ -32,7 +53,7 @@
     </div>
   </div>
 
-</div>
+
 
 <!-- Bottom Navigation -->
 <div class="bottom-nav">

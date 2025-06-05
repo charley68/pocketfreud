@@ -163,36 +163,67 @@ function openSessionHistory() {
 }
 
 async function loadHistoryModal() {
-const res = await fetch("/api/chat_history");
-const history = await res.json();
+  const res = await fetch("/api/chat_history");
+  const history = await res.json();
 
-const tbody = document.querySelector("#historyTable tbody");
-tbody.innerHTML = "";
+  const tbody = document.querySelector("#historyTable tbody");
+  tbody.innerHTML = "";
 
-history.forEach(row => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${row.session_name}</td>
-    <td>${new Date(row.start_date).toLocaleString()}</td>
-    <td><button onclick="restoreSession('${row.session_name}')">Restore</button></td>
-  `;
-  tbody.appendChild(tr);
-});
+  history.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.session_name}</td>
+      <td>${new Date(row.start_date).toLocaleString()}</td>
+      <td><button onclick="restoreSession('${row.session_name}')">Restore</button></td>
+      <td><button class="delete-btn" onclick="deleteSession('${row.session_name}')"><img src="/static/icons/bin.png" alt="Delete"></button>
+    `;
+    tbody.appendChild(tr);
+  });
 
-document.getElementById("historyModal").classList.add("show");
+  document.getElementById("historyModal").classList.add("show");
 }
 
+async function deleteSession(sessionName) {
+    const modal = document.getElementById("confirmDeleteModal");
+    const labelSpan = document.getElementById("sessionToDelete");
+    const confirmBtn = document.getElementById("confirmDeleteBtn");
+  
+    labelSpan.textContent = sessionName;
+    modal.classList.add("show");
+  
+    confirmBtn.onclick = async () => {
+      try {
+        const res = await fetch("/api/delete_session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_name: sessionName })
+        });
+  
+        if (res.ok) {
+          modal.classList.remove("show");
+          loadHistoryModal();
+        } else {
+          alert("Failed to delete session");
+        }
+      } catch (err) {
+        console.error("Error deleting session:", err);
+        alert("Error deleting session");
+      }
+    };
+  }
+  
+
 function restoreSession(label) {
-fetch("/api/restore_chat", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ restore: label })
-}).then(() => {
-  window.location.href = "/therapy";
-});
+  fetch("/api/restore_chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ restore: label })
+  }).then(() => {
+    window.location.href = "/therapy";
+  });
 }
 
 function toggleTherapyHelp() {
-const helpBox = document.getElementById("typeHelp");
-if (helpBox) helpBox.classList.toggle("hidden");
+  const helpBox = document.getElementById("typeHelp");
+  if (helpBox) helpBox.classList.toggle("hidden");
 }

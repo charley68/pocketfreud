@@ -19,6 +19,16 @@ body::before {
   z-index: -1;
 }
 
+.top-bar.authenticated {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;        /* ✅ centers the branding */
+  padding: 0.75rem 1rem;
+  background: #2c145a;
+  color: white;
+  flex-wrap: nowrap;
+}
 
 /* Separate background themes for each environment */
 body.test-env::before {
@@ -42,6 +52,18 @@ body.test-env {
 }
 
 body.prod-env {
+  background: linear-gradient(to bottom, #2a084a, #5f90b5);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+body.theme-earthy {
+  background: linear-gradient(to bottom, #4e944f, #e4c580);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+body.theme-dark {
   background: linear-gradient(to bottom, #2a084a, #5f90b5);
   color: white;
   font-family: 'Inter', sans-serif;
@@ -73,6 +95,7 @@ body.prod-env {
 
 .app-title {
   margin: 0;
+  margin-top: 3rem;
   font-size: 2.8rem;
   font-weight: 700;
 }
@@ -93,6 +116,7 @@ body.prod-env {
   margin-bottom: 1rem; 
   z-index: 1;
   margin-left: auto;
+  white-space: nowrap; 
 }
 
 nav span {
@@ -147,9 +171,6 @@ nav span {
 }
 
 
-
-
-
 button, .btn {
   padding: 10px 20px;
   border-radius: 8px;
@@ -161,6 +182,7 @@ button, .btn {
   transition: background-color 0.3s;
   text-decoration: none;
 }
+
 
 button:disabled {
   opacity: 0.5;
@@ -269,10 +291,16 @@ button:hover, .btn:hover {
   background-color: #444;
 }
 
+#historyModal .modal {
+  max-height: 80vh;  /* limit height to 80% of viewport height */
+  overflow-y: auto;  /* enable vertical scrolling */
+}
+
 #historyTable {
   border-collapse: collapse;
   width: 100%;
   color: #333;
+  margin-bottom: 1rem; /* add some space before the close button */
 }
 
 #historyTable th, #historyTable td {
@@ -292,6 +320,20 @@ button:hover, .btn:hover {
 
 #historyTable button:hover {
   background-color: #6aa3c7;
+}
+
+#historyTable .delete-btn {
+  background-color: transparent;
+  color: #666;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+#historyTable .delete-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
 }
 
 .hero {
@@ -462,20 +504,44 @@ h2 {
 
 .footer-text {
   text-align: center;
-  font-size: 0.9rem;
-  color: #c7e1f9;
+  font-size: 1.1rem;
+  color: #f0f3f5;
   margin-top: 2rem;
+  padding-bottom: 2rem;
 }
 
 .footer-text a {
   margin-top: 0rem;  /* was 2rem */
-  color: #7BAFD4;
+  color: white;
   text-decoration: none;
 }
 
 .footer-text a:hover {
   text-decoration: underline;
 }
+
+
+.plan-badge-container {
+  position: absolute;
+  right: 1rem;
+}
+
+.plan-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background-color: #f6b600;
+  color: #1e1e1e;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
 
 
 /* MODAL DEISGN - POPUPS */
@@ -628,10 +694,34 @@ body.prod-env .modal button {
   .top-bar {
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: right;
     padding: 1.2rem 1rem;
     position: relative;
     text-align: center;
+  }
+
+
+  .top-bar.authenticated {
+    position: relative;
+    padding: 1rem;
+    text-align: center;
+  }
+
+
+  .plan-badge {
+    position: absolute;
+    top: 2.2rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+  }
+
+
+
+  .top-bar.authenticated {
+
+    flex-direction: row; /* ✅ force row even on small screen */
+    flex-wrap: nowrap;
   }
 
   .branding {
@@ -692,33 +782,6 @@ body.prod-env .modal button {
 
 
 
-
-  .top-bar.authenticated {
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    text-align: center;
-  }
-  
-  
-  .top-bar.authenticated .logo {
-    height: 55px;
-  }
-  
-  .top-bar.authenticated .branding {
-    position: static;            /* ⬅️ remove centering */
-    transform: none;
-    text-align: center;
-    margin-left: 0.5rem;
-    flex-grow: 1;
-  }
-  
-  .top-bar.authenticated .app-title {
-    font-size: 1.8rem;
-    margin: 0;
-  }
-  
   .top-bar.authenticated .nav-buttons {
     margin-left: auto;
     z-index: 2;

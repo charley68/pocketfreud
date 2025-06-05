@@ -21,7 +21,7 @@
         <a class="nav-button" href="{{ url_for('lgout') }}">Logout</a>
       {% else %}
         <a class="nav-button" href="{{ url_for('signin') }}">Sign In</a>
-        <a class="nav-button" href="{{ url_for('signup') }}">Sign Up</a>
+        <a class="nav-button" href="{{ url_for('show_subscription_options') }}">Sign Up</a>
       {% endif %}
     </nav>
   </header>
@@ -32,7 +32,6 @@
     <h2>Talking Helps</h2>
     <p>PocketFreud is your AI companion for emotional support and daily mental well-being. Always here. Always listening.</p>
     <div class="cta-buttons">
-      <a href="{{ url_for('demo') }}" class="btn primary">Try Demo</a>
       <a href="{{ url_for('about') }}" class="btn secondary">Learn More</a>
     </div>
 

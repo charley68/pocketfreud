@@ -3,3 +3,5 @@ requests
 gunicorn
 pymysql
 openai
+werkzeug
+Flask-Mail

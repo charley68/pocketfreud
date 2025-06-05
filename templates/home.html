@@ -10,16 +10,31 @@
 
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-  <!-- ✅ Header -->
+
+
+
   <div class="top-bar authenticated">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    
     <div class="branding">
       <h1 class="app-title">PocketFreud</h1>
     </div>
-    <nav class="nav-buttons">
-        <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
-    </nav>
+  
+    {% if session['user_subscription'] %}
+      <div>
+
+        <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
+          {% if session['user_subscription']['plan_type'] == 'basic' %}BASIC
+          {% elif session['user_subscription']['plan_type'] == 'professional' %}PRO
+          {% elif session['user_subscription']['plan_type'] == 'premium' %}PREM
+          {% endif %}
+        </a>
+      </div>
+    {% endif %}
+
   </div>
+
+
 
   <!-- ✅ Main Content -->
   <div class="container">
@@ -77,6 +92,7 @@
       <a href="#" onclick="about()">🌀 About</a>
       <a href="{{ url_for('profile') }}">👤 Profile</a>
       <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+      <a href="{{ url_for('logout') }}">🔓 Logout</a>
     </div>
 
   <!-- Modal: Choose Therapy Option -->
@@ -136,18 +152,33 @@
   <div class="modal-overlay" id="historyModal"> 
     <div class="modal">
       <h2>Your Chat History</h2>
-      <table id="historyTable">
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Date</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-container">
+        <table id="historyTable" style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+          <thead>
+            <tr>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Label</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Date</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Restore</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Delete</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
       <div class="modal-buttons">
         <button onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this where your other modals are located -->
+  <div id="confirmDeleteModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Confirm Delete</h2>
+      <p>Are you sure you want to delete session "<strong id="sessionToDelete"></strong>"?</p>
+      <div class="modal-buttons">
+        <button onclick="document.getElementById('confirmDeleteModal').classList.remove('show')">Cancel</button>
+        <button id="confirmDeleteBtn">Delete</button>
       </div>
     </div>
   </div>

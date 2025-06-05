@@ -9,27 +9,34 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='bot-chat.css') }}">
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
   <div class="top-bar authenticated">
     <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    
     <div class="branding">
       <h1 class="app-title">PocketFreud</h1>
     </div>
-    <nav class="nav-buttons">
-      {% if is_demo %}
-      <a class="logout-button" href="{{ url_for('signup') }}">Sign Up</a>
-      {% else %}
-      <a class="logout-button" href="{{ url_for('logout') }}">Logout</a>
-      {% endif %}
-    </nav>
+  
+    {% if session['user_subscription'] %}
+      <div>
+
+        <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
+          {% if session['user_subscription']['plan_type'] == 'basic' %}BASIC
+          {% elif session['user_subscription']['plan_type'] == 'professional' %}PRO
+          {% elif session['user_subscription']['plan_type'] == 'premium' %}PREM
+          {% endif %}
+        </a>
+      </div>
+    {% endif %}
   </div>
+
+
 
   <main>
     <div class="chat-header stacked">
       <h2 class="chat-title">
-        {% if is_demo %}
-          Try Me
-          <span class="info-icon-wrapper" onclick="openDemoInfo()" title="About Demo Mode">
-        {% elif is_therapy %}
+
+        {% if is_therapy %}
           {{ sessionName }} ({{ sessionType }})
           <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">        
         {% else %}
@@ -49,11 +56,8 @@
 
     <div class="chat-wrapper">
       <div id="chatBox">
-        {% if is_demo %}
-          <div class="bot-message">
-            <strong>PocketFreud:</strong> Hi there. I'm here to listen. What's on your mind?
-          </div>
-        {% elif messages %}
+
+        {% if messages %}
           {% for msg in messages %}
             <div class="{{ 'user-message' if msg['role'] == 'user' else 'bot-message' }}">
               <strong>{{ 'You' if msg['role'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
@@ -96,7 +100,6 @@
     <a href="{{ url_for('home') }}">
       <div><i>🏠</i><div>Home</div></div>
     </a>
-    {% if not is_demo %}
     <a href="{{ url_for('journal_calendar') }}">
       <div><i>📓</i><div>Journal</div></div>
     </a>
@@ -109,38 +112,8 @@
         <div>More</div>
       </div>
     </div>
-    {% else %}
-    <a href="#" class="nav-disabled">
-      <div><i>📓</i><div>Journal</div></div>
-    </a>
-    <a href="#" class="nav-disabled">
-      <div><i>📊</i><div>Insights</div></div>
-    </a>
-    <div class="more-container nav-disabled">
-      <div class="more-button">
-        <i>⋯</i>
-        <div>More</div>
-      </div>
-    </div>
-    {% endif %}
   </div>
 
-  {% if is_demo %}
-  <div id="demoInfoModal" class="modal-overlay">
-    <div class="modal">
-      <h2>About Demo Mode</h2>
-      <p>This is a limited preview of PocketFreud:</p>
-      <ul style="text-align: left; margin-top: 1rem;">
-        <li>🔒 No data is saved or stored</li>
-        <li>💬 Limited messages</li>
-        <li>🧠 No personalized experience</li>
-      </ul>
-      <div class="modal-buttons">
-        <button onclick="closeDemoInfo()">Got it</button>
-      </div>
-    </div>
-  </div>
-  {% else %}
   <div id="suggestionsModal" class="modal-overlay">
     <div class="suggestion-box">
       <h2>Need ideas?</h2>
@@ -191,9 +164,8 @@
     </div>
   </div>
 
-  {% endif %}
 
-  {% if not is_demo %}
+
   <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
     <a href="#" onclick="about()">🌀 About</a>
     <a href="{{ url_for('settings') }}">⚙️ Settings</a>
@@ -204,7 +176,6 @@
     {% endif %}
     <a href="{{ url_for('logout') }}">🔓 Logout</a>
   </div>
-{% endif %}
 
 
   <script>
@@ -212,7 +183,6 @@
     const ICON_DIR = "{{ url_for('static', filename='icons/') }}"; 
     CURRENT_SESSION_NAME = {{ sessionName | tojson }};
     CURRENT_SESSION_TYPE = {{ sessionType | tojson }};
-    const IS_DEMO = {{ is_demo | tojson }};
     const IS_CASUAL = {{ is_casual | tojson}};
     const IS_THERAPY = {{ is_therapy | tojson}};
     const settings = {{ user_settings | tojson }};

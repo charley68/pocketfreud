@@ -5,6 +5,17 @@ PocketFreud – Project Ownership Declaration
 Created: April 23, 2025
 Author: Stephen Chatles Lane
 
+Hosting:  hostinger.com
+pass: LillyOl2018!
+user: sclane68@yahoo.co.uk
+
+Mailboxes:
+admin@pocketfreud.com
+Freud2306!
+smtp.hostinger.com - 465
+pop.hostinger.com - 995
+imap.hostinger.com - 993
+
 
 
 Background & Motivation

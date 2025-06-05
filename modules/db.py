@@ -21,6 +21,8 @@ def init_db():
                 username VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL,
+                verified BOOLEAN DEFAULT FALSE,
+                email_token VARCHAR(128),
                 age INT,
                 sex VARCHAR(10),
                 occupation VARCHAR(100),
@@ -105,6 +107,34 @@ def init_db():
             );
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                plan_type ENUM('basic', 'professional', 'premium') NOT NULL,
+                billing_cycle ENUM('monthly', 'yearly') DEFAULT NULL,
+                start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                end_date DATETIME DEFAULT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS payment_status (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                subscription_id INT NOT NULL,
+                status ENUM('pending', 'paid', 'failed') NOT NULL,
+                payment_method VARCHAR(50),
+                last_payment_date DATE,
+                next_billing_date DATE,
+                FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE
+            );
+        ''')
+
+
         conn.commit()
         populate_personas()
 
@@ -145,7 +175,6 @@ def load_prompts_from_db():
         return {row['persona']: row['prompt'] for row in rows}
     
 
-
 def load_user_settings(user_id):
     app_defaults = current_app.config["APP_CONFIG"].copy()
 
@@ -154,7 +183,7 @@ def load_user_settings(user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT setting_key, setting_value FROM user_settings WHERE user_id = %s", user_id)
     rows = cursor.fetchall()
-    conn.close()
+
 
     # Merge user overrides into defaults
     for row in rows:
@@ -166,7 +195,25 @@ def load_user_settings(user_id):
 
     # Store merged settings in session
     session['user_settings'] = app_defaults
-    dumpConfig()
+
+        # Load user subscription info
+    cursor.execute(
+        "SELECT plan_type, end_date, billing_cycle, is_active FROM subscriptions WHERE user_id = %s",
+        (user_id,)
+    )
+    subscription_row = cursor.fetchone()
+
+    if subscription_row:
+        session['user_subscription'] = {
+            'plan_type': subscription_row['plan_type'],
+            'end_date': subscription_row['end_date'],
+            'billing_cycle': subscription_row['billing_cycle'],
+            'is_active': subscription_row['is_active'],
+        }
+    else:
+        session['user_subscription'] = None
+
+    conn.close()
 
 
 def dumpConfig():

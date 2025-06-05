@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Choose a Plan – PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='subscription.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+    <div class="top-bar">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+        <div class="branding">
+            <h1 class="app-title">PocketFreud</h1>
+        </div>
+        <nav class="nav-buttons">
+            <a class="logout-button" href="{{ url_for('home') }}">Home</a>
+        </nav>
+    </div>
+
+    <h2>{{ "Change Plan" if change_mode else "Choose a Plan" }}</h2>
+
+  <div class="plans">
+
+    <div class="plan basic">
+        <div class="plan-content">
+          <div class="plan-features">
+            <h3>Basic</h3>
+            <ul>
+              <li>Multiple Therapy Types</li>
+              <li>Casual Chat</li>
+              <li>Available 24/7</li>
+              <li>Basic Journalling</li>
+            </ul>
+          </div>
+          <div class="pricing">
+            <div class="price">FREE</div>
+
+                {% if change_mode and current_plan == 'basic' %}
+                    <div class="btn disabled">
+                    ✅ Current Plan
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('signup_with_plan', plan='basic') if not change_mode else url_for('update_subscription', plan='basic') }}"
+                    class="btn">SUBSCRIBE</a>
+                {% endif %}
+
+          </div>
+        </div>
+      </div>
+
+    <div class="plan professional">
+        <div class="plan-content">
+          <div class="plan-features">
+            <h3>Professional</h3>
+            <ul>
+              <li>Multiple Therapy Types</li>
+              <li>Available 24/7</li>
+              <li>AI-powered journal insights</li>
+              <li>Crisis Detection and Hotline Redirection</li>
+            </ul>
+          </div>
+          <div class="pricing">
+            <div class="price">£5/<span>month</span><br>or £50/<span>year</span></div>
+
+                {% if change_mode and current_plan == 'professional' %}
+                    <div class="btn disabled">
+                    ✅ Current Plan
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('signup_with_plan', plan='professional') if not change_mode else url_for('update_subscription', plan='professional') }}"
+                    class="btn">SUBSCRIBE</a>
+                {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="plan premium">
+        <div class="plan-content">
+          <div class="plan-features">
+            <h3>Premium</h3>
+            <ul>
+              <li>Multiple Therapy Types</li>
+              <li>Available 24/7</li>
+              <li>AI-powered journal insights</li>
+              <li>Crisis Detection and Hotline Redirection</li>
+              <li>Export Chats and Insights to PDF<li>
+              <li>Speech and microphone support</li>
+            </ul>
+          </div>
+          <div class="pricing">
+            <div class="price">£10/<span>month</span><br>or £100/<span>year</span></div>
+
+                {% if change_mode and current_plan == 'premium' %}
+                <div class="btn disabled">
+                ✅ Current Plan
+                </div>
+                {% else %}
+                    <a href="{{ url_for('signup_with_plan', plan='premium') if not change_mode else url_for('update_subscription', plan='premium') }}"
+                    class="btn">SUBSCRIBE</a>
+                {% endif %}
+
+          </div>
+        </div>
+      </div>
+
+  </div>
+
+  <p class="footer-text">
+    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+  </p>
+</body>
+</html>
