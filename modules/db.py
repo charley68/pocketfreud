@@ -23,6 +23,7 @@ def init_db():
                 password VARCHAR(255) NOT NULL,
                 verified BOOLEAN DEFAULT FALSE,
                 email_token VARCHAR(128),
+                reset_token VARCHAR(128),
                 age INT,
                 sex VARCHAR(10),
                 occupation VARCHAR(100),
@@ -272,7 +273,7 @@ def get_last_summary(user_id, session):
     with conn.cursor() as cursor:
         cursor.execute(query, (user_id, session))
         row = cursor.fetchone()
-        return row[0] if row else None
+        return row["summary"] if row else None
 
 
 def get_last_summary_checkpoint(user_id, session):
@@ -287,7 +288,7 @@ def get_last_summary_checkpoint(user_id, session):
     with conn.cursor() as cursor:
         cursor.execute(query, (user_id, session))
         row = cursor.fetchone()
-        return row[0] if row else 0
+        return row["last_message_id"] if row else 0
 
 
 def get_messages_after(user_id, session, last_msg_id):

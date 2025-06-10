@@ -30,6 +30,10 @@ body::before {
   flex-wrap: nowrap;
 }
 
+main {
+  padding-top: 80px; /* match height of .top-bar */
+}
+
 /* Separate background themes for each environment */
 body.test-env::before {
   background: linear-gradient(to bottom, #4e944f, #e4c580);
@@ -675,6 +679,11 @@ body.prod-env .modal {
   text-decoration: none;
 }
 
+
+.footer-spacer {
+  height: 70px; /* or whatever your .bottom-nav height is */
+}
+
 /* Themed button colors 
 body.test-env .modal button {
   background-color: #4e944f;
@@ -698,6 +707,10 @@ body.prod-env .modal button {
     padding: 1.2rem 1rem;
     position: relative;
     text-align: center;
+  }
+
+  main {
+    padding-top: 10px; /* match height of .top-bar */
   }
 
 

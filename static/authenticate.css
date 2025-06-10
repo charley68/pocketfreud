@@ -131,10 +131,22 @@
   }
   
   
-  .g-recaptcha {
+
+
+
+  .forgot-password-link {
     margin-top: 1rem;
-    margin-bottom: 1.5rem;
-    width: 100%; /* ensures it doesn't shrink */
-    display: flex;
-    justify-content: center; /* center it within form row */
+    text-align: center;
   }
+  
+  .forgot-password-link a {
+    color: #cde7f5;            /* or another light color like #e0f0ff */
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .forgot-password-link a:hover {
+    text-decoration: underline;
+    color: #ffffff;            /* even lighter on hover if desired */
+  }
+  

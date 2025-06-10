@@ -1,11 +1,13 @@
 import os
 import logging
 import json
-from flask import Flask, session, jsonify
+from flask import Flask, session, jsonify, request, redirect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from modules.db import load_prompts_from_db, init_db, get_next_session_name_api, increment_session_counter
 from modules.routes import register_routes
 from modules.extensions import mail
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 
 
 # Function to load properties file
@@ -28,6 +30,8 @@ logging.basicConfig(level=logging.INFO)
 env = os.getenv("ENV", "prod")
 is_test = env == "test"
 
+logging.info(f"Started Environment: {env}")
+
 # ----------------- 2. CREATE FLASK APP -----------------
 app = Flask(
     __name__,
@@ -35,7 +39,7 @@ app = Flask(
     static_url_path="/test/static" if is_test else "/static"
 )
 
-app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # ----------------- 3. LOAD CONFIGURATION -----------------
 app.config["APP_CONFIG"] = load_properties("config.properties")
@@ -44,6 +48,8 @@ app.config["APP_CONFIG"] = load_properties("config.properties")
 # ----------------- 4. CONFIGURE APP -----------------
 app_root = "/test" if is_test else "/"
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_secret_key')
+
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 app.config.update(
     BASE_URL=app_root,
@@ -90,6 +96,7 @@ def api_increment_session_counter():
     increment_session_counter(user_id)
     return jsonify({"success": True})
 
+    
 # ----------------- 8. DEV ENTRY -----------------
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5050)

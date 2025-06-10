@@ -110,6 +110,19 @@
         <span class="toggle-password" onclick="togglePassword()">👁️</span>
       </div>
 
+      <!-- ✅ Google reCAPTCHA -->
+
+      <div class="input-wrapper">
+        <div class="g-recaptcha"
+            data-sitekey="{% if ENV == 'DEV' %}
+                              6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+                          {% else %}
+                              6LdwQCArAAAAANhPdIJ2UxXqmQcAXcWUERPKSDot
+                          {% endif %}">
+        </div>
+      </div>
+
+
       <button class="btn" type="submit">Sign Up</button>
     </form>
 
@@ -118,11 +131,6 @@
     </div>
   </div>
 
-  <script>
-    function togglePassword() {
-      const input = document.getElementById("password");
-      input.type = input.type === "password" ? "text" : "password";
-    }
-  </script>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </body>
 </html>

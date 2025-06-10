@@ -1,127 +1,100 @@
-/* ********************** */
-/* Profile Page Layout */
-/* ********************** */
+body.profile-body {
+  background: linear-gradient(to bottom, #1d2636, #2a3b52);
+  margin: 0;
+  padding-top: 0;
+  font-family: 'Inter', sans-serif;
+}
 
-/* Make the profile container scrollable on small screens */
+.profile-container {
+  max-width: 600px;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
 
-.profile-body {
-    height: auto;
-    min-height: 100vh;
-    display: block; /* kill off flex behavior */
-    overflow-y: visible;
-  }
-  
-  
-  .profile-container {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 16px;
-    box-sizing: border-box;
-  
-    /* ✅ Fix these lines */
-    height: auto;          /* No fixed height */
-    min-height: auto;     /* Still fills screen at minimum */
-    overflow-y: visible;   /* Let it grow with content */
-    overflow: visible;
-  
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  
-  
-  .profile-card {
-    width: 100%;
-    margin: 0 auto;
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    box-sizing: border-box;
-    padding-bottom: 12px;
-  }
-  
-  .form-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 14px;
-    width: 100%;
-    box-sizing: border-box;
-  
-  }
-  
-  
-  .profile-card label {
-    width: 100px;
-    flex-shrink: 0;
-    font-weight: bold;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  
-  .profile-card input,
-  .profile-card select {
-    width: 100%; /* ← ensures they respect the container */
-    max-width: 100%; /* ← prevents overflow */
-    padding: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-  
-  
-  .profile-card textarea {
-    min-height: 140px;  /* Adjust this value to your liking */
-    resize: vertical;   /* Still allows the user to resize */
-  
-    font-size: 1rem;
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: -5px;
-  }
-  
-  
-  
+.profile-main {
+  padding: 3rem 1rem 2rem;
+  display: flex;
+  justify-content: center;
+}
 
-  
-  .profile-heading-container:hover .info-popup {
-    display: block;
-  }
-  
-  .info-wrapper {
-    cursor: pointer;
-  }
-  
-  .info-icon {
-    cursor: pointer;
-    vertical-align: middle;
-  }
-  
-  .info-popup {
-    display: none;
-    position: absolute;
-    top: 3.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    color: #333;
-    padding: 1.4rem 1.6rem;
-    border-radius: 14px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.3);
-    font-size: 1rem;
-    line-height: 1.6;
-    z-index: 100;
-    width: 90vw;
-    max-width: 500px;
-    box-sizing: border-box;
-    text-align: left;
-  }
-  
-  .info-wrapper:hover .info-popup {
-    display: block;
-  }
+
+.profile-heading {
+  text-align: center;
+  font-size: 1.8rem;
+  color: #fff;
+  margin-top: 0;
+}
+
+.info-popup {
+  display: none; /* just to test if it’s the cause */
+}
+
+.profile-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row label {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: #2b2b2b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #6e60e6;
+  outline: none;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.save-button-wrap {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.profile-button {
+  background-color: #6e60e6;
+  color: white;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin: 2rem auto 0;
+  display: block;
+  transition: background-color 0.2s ease;
+}
+
+.profile-button:hover {
+  background-color: #574dc4;
+}
+

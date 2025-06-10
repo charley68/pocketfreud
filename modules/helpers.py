@@ -1,6 +1,7 @@
 import re
 import datetime
 import requests
+from flask import flash, redirect
 from flask import session
 from flask import url_for
 from flask_mail import Mail, Message
@@ -199,3 +200,31 @@ def send_verification_email(user_email, username, token):
     
     msg = Message(subject, recipients=[user_email], html=html)
     mail.send(msg)
+
+def send_reset_email(user_email, reset_link):
+    subject = "Reset Your PocketFreud Password"
+    html = render_template("emails/reset_password_email.html", reset_link=reset_link)
+
+    msg = Message(subject, recipients=[user_email], html=html)
+    mail.send(msg)
+
+def check_captcha(request):
+            captcha_response = request.form.get("g-recaptcha-response")
+
+            
+            if request.form.get('nickname'):
+                # Detected a bot
+                return "Bot detected", 400
+            
+            if not captcha_response:
+                flash("Please complete the CAPTCHA.")
+                return redirect(url_for("contact"))
+
+            r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={
+                "secret": os.getenv("RECAPTCHA_SECRET_KEY"),
+                "response": captcha_response,
+                "remoteip": request.remote_addr
+            })
+            if not r.json().get("success"):
+                flash("CAPTCHA failed.")
+                return redirect(url_for("contact"))

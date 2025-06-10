@@ -6,6 +6,8 @@
   <title>PocketFreud</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+
 </head>
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
@@ -70,9 +72,15 @@
     </section>
     
   </main>
-  <p class="footer-text">
+  <div class="footer-links">
+    <a href="{{ url_for('contact') }}">Contact Us</a>
+    <a href="{{ url_for('about') }}">Learn More</a>
     <a href="{{ url_for('privacy') }}">Privacy Policy</a>
-  </p>
+    <a href="{{ url_for('terms') }}">Terms of Use</a>
+  </div>
+  <div class="footer-copy">
+    &copy; PocketFreud 2025. All rights reserved.
+  </div>
 </body>
 
 </html>

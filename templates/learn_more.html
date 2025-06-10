@@ -96,9 +96,7 @@
         <h1 class="app-title">PocketFreud</h1>
       </div>
     
-      <nav class="logout-button">
-        <a href="{{ url_for('home') }}">Home</a>
-      </nav>
+
     </header>
 
 
@@ -123,6 +121,7 @@
       <li><span>📓</span> Private journaling with emotional summaries.</li>
       <li><span>🧠</span> Smart conversation with AI-driven reflections.</li>
       <li><span>🕊️</span> Light Chat mode for casual venting (nothing saved).</li>
+      <li><span>🎯</span> Set goals and stay on track with guided support.</li>
       <li><span>🔐</span> No personal info required — stay anonymous if you choose.</li>
     </ul>
   </section>
@@ -133,10 +132,19 @@
     <p>Your conversations are yours. PocketFreud stores minimal data, encrypted and never sold. You choose what to share, and you can delete anything at any time.</p>
   </section>
 
-  <!-- ✅ Footer -->
-  <footer class="footer-text">
-    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+
+  <div class="footer-spacer"></div>
+  <footer class="bottom-nav">
+    <a href="{{ url_for('home') }}">
+      <div><i class="icon">🏠</i><span>Home</span></div>
+    </a>
+
+    <a href="{{ url_for('privacy') }}">
+      <div><i class="icon">🔒</i><span>Privacy Policy</span></div>
+    </a>
+
   </footer>
+
 
 </body>
 </html>

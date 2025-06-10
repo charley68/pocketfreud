@@ -8,3 +8,10 @@
     font-weight: bold;
     margin-bottom: 0.3rem;
   }
+
+  .feature-card.disabled {
+    opacity: 0.5;
+    pointer-events: none;       /* disables clicks */
+    filter: grayscale(100%);
+    cursor: not-allowed;
+  }

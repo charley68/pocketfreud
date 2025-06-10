@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Terms of Use – PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <style>
+
+    .terms-container {
+        max-width: 820px;
+        margin: 4rem auto 5rem auto; /* ✅ added bottom margin */
+        background: white;
+        color: #333;
+        border-radius: 16px;
+        padding: 2.5rem;
+        padding-bottom: 3rem; /* optional but nice */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+
+    @media (max-width: 600px) {
+      .terms-container {
+        margin: 1rem 1rem;
+        padding: 1.5rem;
+        margin-bottom: 15rem;
+      }
+
+      .header h1 {
+        font-size: 1.4rem;
+    }
+
+  </style>
+
+  </head>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+    <header class="top-bar">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+      <div class="branding">
+        <h1 class="app-title">PocketFreud</h1>
+      </div>
+    
+    </header>
+
+  <div class="terms-container">
+    <h2>Terms of Use</h2>
+    <p>Welcome to PocketFreud. By accessing or using our services, you agree to be bound by these Terms of Use and our Privacy Policy.</p>
+
+    <h2>1. Purpose</h2>
+    <p>PocketFreud is designed to provide AI-powered emotional support. It is not a substitute for professional medical advice or therapy.</p>
+
+    <h2>2. User Responsibilities</h2>
+    <p>You are responsible for your use of the service, and for any data you provide. Do not share sensitive personal information unnecessarily.</p>
+
+    <h2>3. Data and Privacy</h2>
+    <p>We take privacy seriously. Your data is encrypted and never shared with third parties. For more, see our Privacy Policy.</p>
+
+    <h2>4. Limitations</h2>
+    <p>While PocketFreud can provide helpful conversation and coping support, it does not replace clinical advice. In an emergency, contact local services.</p>
+
+    <h2>5. Changes</h2>
+    <p>We may update these terms periodically. Continued use of the service indicates acceptance of any new terms.</p>
+
+
+  </div>
+
+  <div class="footer-spacer"></div>
+  <footer class="bottom-nav">
+    <a href="{{ url_for('home') }}">
+      <div><i class="icon">🏠</i><span>Home</span></div>
+    </a>
+  </footer>
+
+</body>
+</html>

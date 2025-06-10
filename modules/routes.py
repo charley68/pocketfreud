@@ -1,14 +1,16 @@
-import os
-import requests
 import traceback
 from datetime import datetime, date, timedelta
 from functools import wraps
+import secrets
+import threading
+import requests,os
 from flask import (
     render_template, request, jsonify, redirect,
     url_for, session, flash, current_app
 )
+from modules.extensions import mail
 
-
+from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -37,7 +39,9 @@ from modules.helpers import (
     extract_top_themes,
     generate_monthly_summary,
     send_verification_email,
-    generate_email_token
+    generate_email_token,
+    send_reset_email,
+    check_captcha
 )
 
 
@@ -73,7 +77,10 @@ def register_routes(app):
     @app.route('/about')
     def about():
         return render_template('learn_more.html')
-    
+
+    @app.route('/terms')
+    def terms():
+        return render_template("terms.html")    
 
     @app.route('/logout')
     def logout():
@@ -158,8 +165,53 @@ def register_routes(app):
         cursor.close()
 
         send_verification_email(email, user['username'], token)
-        flash("A new verification email has been sent.")
+        flash(f"A new verification email has been sent to {email}. Please check your inbox.")
         return redirect(url_for('signin'))
+
+    @app.route('/forgot_password', methods=['GET', 'POST'])
+    def forgot_password():
+        if request.method == 'POST':
+            email = request.form['email'].strip().lower()
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+
+            if user:
+                # 1. Generate and save token
+                token = secrets.token_urlsafe(32)
+                cursor.execute("UPDATE users SET reset_token = %s WHERE id = %s", (token, user['id']))
+                conn.commit()
+
+                # 2. Build reset link
+                reset_link = url_for('reset_password', token=token, _external=True, _scheme='https')
+
+                # 3. Send the email
+                send_reset_email(email, reset_link)
+
+            flash("If your email is registered, a reset link has been sent.")
+            return redirect(url_for('signin'))
+
+        return render_template("forgot_password.html")
+
+    @app.route('/reset_password', methods=['GET', 'POST'])
+    def reset_password():
+        token = request.args.get('token')
+
+        if request.method == 'POST':
+            new_password = request.form['password']
+            hashed = generate_password_hash(new_password)
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET password = %s, reset_token = NULL WHERE reset_token = %s", (hashed, token))
+            conn.commit()
+
+            flash("Your password has been updated. Please sign in.")
+            return redirect(url_for('signin'))
+
+        return render_template("reset_password.html", token=token)
 
 
 
@@ -775,7 +827,7 @@ def register_routes(app):
     @app.route('/insights')
     def insights():
         user_id = session.get('user_id')
-        days = int(request.args.get('days', 30))
+        days = int(request.args.get('days', 7))
 
         journals = get_journals_by_days(user_id, days)
         mood_data = [(j['entry_date'], j['mood']) for j in journals if j['mood']]
@@ -787,7 +839,7 @@ def register_routes(app):
     @app.route('/api/insights_summary')
     def api_insights_summary():
         user_id = session.get('user_id')
-        days = int(request.args.get('days', 30))
+        days = int(request.args.get('days', 7))
 
         journals = get_journals_by_days(user_id, days)
         summary = generate_monthly_summary(journals)
@@ -802,7 +854,7 @@ def register_routes(app):
     @app.route('/api/mood_data')
     def api_mood_data():
         user_id = session.get('user_id')
-        days = int(request.args.get('days', 30))
+        days = int(request.args.get('days', 7))
 
         journals = get_journals_by_days(user_id, days)
         moods = [(j['entry_date'], j['mood']) for j in journals if j['mood']]
@@ -814,8 +866,8 @@ def register_routes(app):
     @app.route('/signup_with_plan', methods=['GET', 'POST'])
     def signup_with_plan():
 
+
         plan = request.args.get('plan')
-        print(f"PLAN SELECTED: {plan}")
         if request.method == 'GET':
             # User came from /subscribe
             if plan not in ['basic', 'professional', 'premium']:
@@ -831,6 +883,12 @@ def register_routes(app):
         name = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        check_captcha(request)
+
+
+        if not is_valid_email(email):
+            flash('Invalid email format.')
+            return redirect(url_for('signup_with_plan'))
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -942,6 +1000,49 @@ def register_routes(app):
         else:
             flash("Verification failed or already completed.")
             return redirect(url_for('signin'))
+        
+
+    def send_async_email(app, msg):
+        with app.app_context():
+            mail.send(msg)
+
+
+    @app.route('/contact', methods=['GET', 'POST'])
+    def contact():
+        if request.method == 'POST':
+            name = request.form.get('name')
+            email = request.form.get('email')
+            message = request.form.get('message')
+
+            if not is_valid_email(email):
+                return jsonify({'status': 'error', 'message': 'Invalid email format'}), 400
+
+            check_captcha(request)
+
+            subject = f"New contact form message from {name}"
+            body = f"""
+            You received a new message via the PocketFreud contact form:
+
+            Name: {name}
+            Email: {email}
+
+            Message:
+            {message}
+            """
+
+            msg = Message(subject,
+                        recipients=['admin@pocketfreud.com'],
+                        body=body)
+            msg.reply_to = email
+
+            # 🔁 Send email in background thread
+            threading.Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+
+            return jsonify({'status': 'success'})
+        
+        return render_template('contact.html')
+
+
 
 
 
@@ -957,14 +1058,6 @@ def login_required():
             return f(*args, **kwargs)
         return wrapped
     return decorator
-
-
-def user_is_in_crisis(text):
-    crisis_keywords = [
-        "kill myself", "suicidal", "end it all", "can't go on",
-        "want to die", "hurt myself", "ending my life", "give up"
-    ]
-    return any(keyword in text.lower() for keyword in crisis_keywords)
 
 def lookup_hotline(country_code):
     return HOTLINES.get(country_code.upper(), "N/A")

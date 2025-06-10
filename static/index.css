@@ -1,0 +1,51 @@
+.site-footer {
+    background-color: #1d2636;
+    padding: 2rem 1rem;
+    font-family: 'Inter', sans-serif;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  
+  .footer-links a {
+    color: #cde7f5;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  
+  .footer-links a:hover {
+    text-decoration: underline;
+  }
+  
+  .footer-copy {
+    text-align: center;
+    color: #e0f2ff;
+    font-size: 0.85rem;
+  }
+  .contact-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .header-logo {
+    height: 48px;
+    width: auto;
+  }
+  
+  .header-title {
+    font-size: 1.75rem;
+    color: #1d2636;
+    margin: 0;
+    font-weight: 700;
+  }
+  

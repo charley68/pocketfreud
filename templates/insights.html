@@ -60,6 +60,7 @@
     {% endif %}
   </div>
 
+
   <div class="insights-container">
     <div class="range-selector">
       <a href="{{ url_for('insights', days=7) }}" class="range-btn {{ 'active' if selected_days == 7 else '' }}">7D</a>
@@ -87,6 +88,7 @@
         <div id="summaryBox" class="summary-textarea" style="white-space: pre-wrap; overflow-y: visible; height: auto; max-width: 100%; box-sizing: border-box;">Loading summary...</div>
       </div>
     </section>
+
 
     <footer class="bottom-nav">
       <a href="{{ url_for('home') }}">
@@ -117,9 +119,14 @@
         const summaryData = await summaryRes.json();
         const moodData = await moodRes.json();
 
-        requestIdleCallback(() => {
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            document.getElementById('summaryBox').textContent = summaryData.summary;
+          });
+        } else {
+          // Fallback for mobile Safari
           document.getElementById('summaryBox').textContent = summaryData.summary;
-        });
+        }
 
         const themesContainer = document.getElementById('themesContainer');
         if (summaryData.themes && summaryData.themes.length > 0) {
@@ -189,7 +196,13 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('loadingOverlay').style.display = 'flex';
-      requestIdleCallback(loadInsights);
+
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadInsights);
+      } else {
+        // fallback for Safari and older browsers
+        setTimeout(loadInsights, 100);
+      }
     });
   </script>
 </body>
