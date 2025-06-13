@@ -12,6 +12,7 @@ from modules.extensions import mail
 
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 
 from modules.db import (
@@ -23,7 +24,52 @@ from modules.db import (
     get_messages_after,
     save_summary,
     dumpConfig,
-    get_journals_by_days
+    get_journals_by_days,
+    verify_user_email,
+    check_user_exists,
+    create_user,
+    get_user_profile,
+    update_user_profile,
+    save_user_reset_token,
+    update_user_password,
+    get_current_session,
+    archive_session,
+    delete_current_chat,
+    get_chat_history,
+    restore_chat,
+    rename_session,
+    create_new_session,
+    delete_session,
+    update_session_persona,
+    get_session_types,
+    save_journal_entry,
+    get_journal_entry,
+    delete_journal_entry,
+    get_journal_dates,
+    create_subscription,
+    update_subscription,
+    save_user_settings,
+    update_monthly_tokens,
+    get_monthly_tokens,
+    get_session_messages,
+    get_user_info,
+    get_user_by_email_for_verification,
+    update_verification_token,
+    save_chat_message,
+    track_token_usage,
+    get_chat_sessions,
+    get_chat_session,
+    get_payment_status,
+    get_active_subscription,
+    cancel_subscription,
+    update_payment_status,
+    save_chat_thread,
+    get_chat_thread,
+    clear_chat_history,
+    get_user_settings_value,
+    save_user_setting,
+    delete_user_data,
+    merge_user_accounts
 )
 
 from modules.helpers import (
@@ -102,22 +148,18 @@ def register_routes(app):
         if request.method == 'POST':
             email = request.form['email'].strip().lower()
             password = request.form['password']
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute('SELECT id, username, age, sex, bio, password, verified FROM users WHERE email = %s', (email,))
-            profile = cursor.fetchone()
-            cursor.close()
-
+            
+            profile = get_user_profile(email)
+            
             if not profile:
                 flash("No account found with that email.")
                 return redirect(url_for('signin'))
-        
+            
             if not profile['verified']:
                 flash(f"Please verify your email before signing in. " f"<a href='{url_for('resend_verification', email=email)}'>Resend verification email</a>.")
                 return redirect(url_for('signin'))
-        
-            if  check_password_hash(profile['password'], password):
+            
+            if check_password_hash(profile['password'], password):
                 session['user_id'] = profile['id']
                 session['username'] = profile['username']
                 session['user_profile'] = {
@@ -145,10 +187,7 @@ def register_routes(app):
             flash("Missing email address.")
             return redirect(url_for('signin'))
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, verified FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        user = get_user_by_email_for_verification(email)
 
         if not user:
             flash("No account found with that email.")
@@ -160,9 +199,7 @@ def register_routes(app):
 
         # Generate new token and update DB
         token = generate_email_token()
-        cursor.execute("UPDATE users SET email_token = %s WHERE id = %s", (token, user['id']))
-        conn.commit()
-        cursor.close()
+        update_verification_token(user['id'], token)
 
         send_verification_email(email, user['username'], token)
         flash(f"A new verification email has been sent to {email}. Please check your inbox.")
@@ -172,24 +209,17 @@ def register_routes(app):
     def forgot_password():
         if request.method == 'POST':
             email = request.form['email'].strip().lower()
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
-            user = cursor.fetchone()
-
-            if user:
-                # 1. Generate and save token
-                token = secrets.token_urlsafe(32)
-                cursor.execute("UPDATE users SET reset_token = %s WHERE id = %s", (token, user['id']))
-                conn.commit()
-
-                # 2. Build reset link
-                reset_link = url_for('reset_password', token=token, _external=True, _scheme='https')
-
-                # 3. Send the email
-                send_reset_email(email, reset_link)
-
+            
+            # Generate and save token
+            token = secrets.token_urlsafe(32)
+            save_user_reset_token(email, token)
+            
+            # Build reset link
+            reset_link = url_for('reset_password', token=token, _external=True, _scheme='https')
+            
+            # Send the email
+            send_reset_email(email, reset_link)
+            
             flash("If your email is registered, a reset link has been sent.")
             return redirect(url_for('signin'))
 
@@ -202,14 +232,13 @@ def register_routes(app):
         if request.method == 'POST':
             new_password = request.form['password']
             hashed = generate_password_hash(new_password)
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET password = %s, reset_token = NULL WHERE reset_token = %s", (hashed, token))
-            conn.commit()
-
-            flash("Your password has been updated. Please sign in.")
-            return redirect(url_for('signin'))
+            
+            if update_user_password(token, hashed):
+                flash("Your password has been updated. Please sign in.")
+                return redirect(url_for('signin'))
+            else:
+                flash("Invalid or expired reset token.")
+                return redirect(url_for('forgot_password'))
 
         return render_template("reset_password.html", token=token)
 
@@ -219,24 +248,20 @@ def register_routes(app):
     @app.route('/therapy')
     @login_required()
     def therapy():
+        current_session = get_current_session(session['user_id'])
+        sessionName = current_session['session_name'] if current_session else None
+        persona = current_session['persona'] if current_session else None
+        
+        messages = get_session_messages(session['user_id'], sessionName) if sessionName else []
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT session_name, persona FROM sessions WHERE user_id = %s AND current = TRUE
-        ''', (session['user_id'],))
-        row = cursor.fetchone()
-        sessionName = row['session_name'] if row else None
-        persona = row['persona'] if row else None
-
-        cursor.execute('''
-            SELECT role, message FROM conversations WHERE user_id = %s AND session = %s ORDER BY timestamp ASC LIMIT 20
-        ''',  (session['user_id'], sessionName))
-        messages = cursor.fetchall()
-        conn.close()
-
-        return render_template('bot-chat.html',  is_therapy=True, is_casual = False, messages=messages, username=session.get('username'), sessionName=sessionName, sessionType=persona, user_settings=session.get('user_settings', {}))
+        return render_template('bot-chat.html',  
+                             is_therapy=True, 
+                             is_casual=False, 
+                             messages=messages, 
+                             username=session.get('username'), 
+                             sessionName=sessionName, 
+                             sessionType=persona, 
+                             user_settings=session.get('user_settings', {}))
 
 
     @app.route('/api/chat', methods=['POST'])
@@ -254,13 +279,12 @@ def register_routes(app):
         responses = []
 
         try:
-            # === Detect and respond to crisis if needed ===
+            # Detect and respond to crisis if needed
             crisis_msg = detect_crisis_response(user_input)
             if crisis_msg:
-                #save_message_for_user(user_id, 'assistant', crisis_msg, session_name)
                 responses.append(crisis_msg)
 
-            # === Build conversation history ===
+            # Build conversation history
             summary = get_last_summary(user_id, session_name)
             last_checkpoint = get_last_summary_checkpoint(user_id, session_name)
             recent_msgs = get_messages_after(user_id, session_name, last_checkpoint)
@@ -270,47 +294,31 @@ def register_routes(app):
             if summary:
                 conv_history.append({"role": "system", "content": f"Summary so far: {summary}"})
                 conv_history += recent_msgs
-                print("[SUMMARY] Using summary in system prompt")
             else:
                 conv_history += build_conv_history(messages[:-1], persona)
 
             # Append current user message
             conv_history.append({"role": "user", "content": user_input})
 
-            # === Call OpenAI ===
+            # Call LLM API
             ai_msg, usage = call_llm_api(model, conv_history)
 
-            # === Token tracking ===
+            # Track token usage
             total_tokens = usage.get("total_tokens", 0)
             mmYY = datetime.now().strftime("%m%y")
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE user_tokens SET month_tokens = month_tokens + %s
-                WHERE user_id = %s AND token_month = %s
-            """, (total_tokens, user_id, mmYY))
-            if cursor.rowcount == 0:
-                cursor.execute("""
-                    INSERT INTO user_tokens (user_id, token_month, month_tokens)
-                    VALUES (%s, %s, %s)
-                """, (user_id, mmYY, total_tokens))
-            conn.commit()
-            conn.close()
+            track_token_usage(user_id, total_tokens, mmYY)
 
-            # === Save messages to DB ===
-            save_message_for_user(user_id, 'user', user_input, session_name)
-            save_message_for_user(user_id, 'assistant', ai_msg, session_name)
+            # Save messages to DB
+            save_chat_message(user_id, 'user', user_input, session_name)
+            save_chat_message(user_id, 'assistant', ai_msg, session_name)
 
-            # === Trigger summarisation if needed ===
+            # Handle summarization
             SUMMARY_TRIGGER = session.get('user_settings', {}).get('summary_trigger', 10)
-
             if len(recent_msgs) >= SUMMARY_TRIGGER:
                 updated_summary = generate_incremental_summary(summary, recent_msgs)
                 save_summary(user_id, session_name, updated_summary, last_checkpoint + len(recent_msgs))
-                print(f"[SUMMARY] Generating summary after {len(recent_msgs)} messages")
-                print(f"[SUMMARY] New summary: {updated_summary[:100]}...")
 
-            # Return response to frontend
+            # Return response
             responses.append(ai_msg)
             return jsonify({"responses": responses})
 
@@ -322,11 +330,12 @@ def register_routes(app):
     @app.route('/api/casual_chat', methods=['POST'])
     @login_required()
     def casual_chat_api():
-
         model = session.get('user_settings', {}).get('model')
         data = request.get_json(force=True)
         messages = data.get('messages', [])
         persona = "Casual Chat"
+        user_id = session['user_id']
+        session_name = "Casual"
 
         conv_history = build_conv_history(messages[:-1], persona)
         user_input = messages[-1]['content']
@@ -340,6 +349,16 @@ def register_routes(app):
                 responses.append(crisis_msg)
 
             ai_msg, usage = call_llm_api(model, conv_history)
+            
+            # Save messages
+            save_chat_message(user_id, 'user', user_input, session_name)
+            save_chat_message(user_id, 'assistant', ai_msg, session_name)
+            
+            # Track token usage
+            total_tokens = usage.get("total_tokens", 0)
+            mmYY = datetime.now().strftime("%m%y")
+            track_token_usage(user_id, total_tokens, mmYY)
+            
             responses.append(ai_msg)
             return jsonify({"responses": responses})
 
@@ -347,34 +366,6 @@ def register_routes(app):
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
-    """
-    @app.route('/api/demo_chat', methods=['POST'])
-    def demo_chat():
-
-        data = request.get_json(force=True)
-        messages = data.get("messages", [])
-        persona = "DEMO"
-        model = app.config["APP_CONFIG"]["model"]
-
-        conv_history = build_conv_history(messages[:-1], persona)
-        user_input = messages[-1]['content']
-        conv_history.append({"role": "user", "content": user_input})
-
-        responses = []
-
-        try:
-            crisis_msg = detect_crisis_response(user_input)
-            if crisis_msg:
-                responses.append(crisis_msg)
-
-            ai_msg, usage = call_llm_api(model, conv_history)
-            responses.append(ai_msg)
-            return jsonify({"responses": responses})
-
-        except Exception as e:
-            traceback.print_exc()
-            return jsonify({"error": str(e)}), 500
-    """
 
     @app.route('/settings')
     @login_required()
@@ -395,38 +386,22 @@ def register_routes(app):
     @app.route('/api/chat_history')
     @login_required()
     def chat_history():
-
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT session_name, start_date  FROM sessions WHERE user_id = %s AND current = 0  ORDER BY start_date DESC
-            ''', (session['user_id'],))
-            rows = cursor.fetchall()
-
+        rows = get_chat_history(session['user_id'])
         return jsonify(rows)
 
     @app.route('/api/restore_chat', methods=['POST'])
     @login_required()
-    def restore_chat():
-
+    def restore_chat_route():
         data = request.get_json()
         session_name = data.get('restore')
-
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (session['user_id'],))
-            cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name  = %s', (session['user_id'], session_name))
-            conn.commit()
-
+        
+        restore_chat(session['user_id'], session_name)
         return '', 204
 
 
     @app.route("/api/rename_session", methods=["POST"])
     @login_required()
-    def rename_session():
-
+    def rename_session_route():
         data = request.get_json()
         old_name = data.get("old_name")
         new_name = data.get("new_name")
@@ -435,44 +410,18 @@ def register_routes(app):
         if not old_name or not new_name:
             return jsonify({"error": "Missing fields"}), 400
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE sessions SET session_name = %s WHERE user_id = %s AND session_name = %s
-        """, (new_name, user_id, old_name))
-
-        cursor.execute("""
-            UPDATE conversations SET session = %s WHERE user_id = %s AND session = %s
-        """, (new_name, user_id, old_name))
-
-        cursor.execute("""
-            UPDATE summaries SET session = %s WHERE user_id = %s AND session = %s
-        """, (new_name, user_id, old_name))
-
-        conn.commit()
-        conn.close()
-
+        rename_session(user_id, old_name, new_name)
         return jsonify({"status": "renamed"})
     
     
     @app.route('/change_persona', methods=['POST'])
     @login_required()
     def change_persona():
-
         data = request.get_json()
         current_session_name = data.get('current_session_name')
         new_persona = data.get('persona')
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE sessions SET persona = %s WHERE user_id = %s AND session_name = %s",
-            (new_persona, session['user_id'], current_session_name)
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-
+        update_session_persona(session['user_id'], current_session_name, new_persona)
         return jsonify({'success': True})
 
     
@@ -480,26 +429,13 @@ def register_routes(app):
     @app.route("/api/token_usage", methods=["GET"])
     @login_required()
     def get_token_usage():
-
         user_id = session["user_id"]
         mmYY = datetime.now().strftime("%m%y")
-
+        
         print(f"Fetching tokens for user {user_id}, month {mmYY}")
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT month_tokens FROM user_tokens
-            WHERE user_id = %s AND token_month = %s
-        """, (user_id, mmYY))
-        result = cursor.fetchone()
-
-        print("SQL result:", result)
-        token_count = result.get("month_tokens", 0) if result else 0
-
-        cursor.close()
-        conn.close()
-
+        token_count = get_monthly_tokens(user_id, mmYY)
+        print("Token count:", token_count)
+        
         return jsonify({"month_tokens": token_count})
 
 
@@ -508,50 +444,23 @@ def register_routes(app):
     @app.route('/api/new_chat', methods=['POST'])
     @login_required()
     def new_chat():
-
-
         data = request.get_json()
         session_name = data.get('session_name')  # This might be None
-
         user_id = session['user_id']
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        if session_name:
-            cur.execute("""
-                UPDATE conversations
-                SET archive = 1, session = %s
-                WHERE user_id = %s AND archive = 0
-            """, (session_name, user_id))
-        else:
-            cur.execute("""
-                UPDATE conversations
-                SET archive = 1
-                WHERE user_id = %s AND archive = 0
-            """, (user_id,))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
+        
+        archive_session(user_id, session_name)
         return jsonify({'status': 'archived and ready'})
 
 
     @app.route('/api/delete_chat', methods=['POST'])
     @login_required()
     def delete_chat():
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM conversations WHERE user_id = %s AND archive = 0', (session['user_id'],))
-        conn.commit()
-        conn.close()
+        delete_current_chat(session['user_id'])
         return jsonify({'status': 'deleted'})
 
     @app.route('/log_mood', methods=['POST'])
     @login_required()
     def log_mood():
-
         user_id = session['user_id']
         data = request.get_json()
         mood = data.get('mood')
@@ -560,19 +469,7 @@ def register_routes(app):
             return 'Invalid data', 400
 
         today = date.today()
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT id FROM journals WHERE user_id = %s AND entry_date = %s', (user_id, today))
-        row = cursor.fetchone()
-
-        if row:
-            cursor.execute('UPDATE journals SET mood = %s, updated_at = CURRENT_TIMESTAMP WHERE user_id = %s AND entry_date = %s', (mood, user_id, today))
-        else:
-            cursor.execute('INSERT INTO journals (user_id, entry_date, mood) VALUES (%s, %s, %s)', (user_id, today, mood))
-
-        conn.commit()
-        conn.close()
+        save_journal_entry(user_id, today, None, mood)
         return '', 204
 
     @app.route('/suggestions')
@@ -592,9 +489,7 @@ def register_routes(app):
     @login_required()
     def profile():
         user_id = session.get("user_id")
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
+        
         if request.method == "POST":
             username = request.form.get("username")
             age = request.form.get("age")
@@ -609,26 +504,16 @@ def register_routes(app):
                 'bio': bio
             }
 
-            cursor.execute("""
-                UPDATE users SET username = %s, age = %s, sex = %s, occupation = %s, bio = %s
-                WHERE id = %s
-            """, (username, age, sex, occupation, bio, user_id))
-            conn.commit()
-            cursor.close()
-            conn.close()
+            update_user_profile(user_id, username, age, sex, occupation, bio)
             return redirect(url_for("home"))
 
-        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        user = get_user_info(user_id)
 
         return render_template("profile.html", user=user)
 
     @app.route('/journal', methods=['GET', 'POST'])
     @login_required()
     def journal():
-
         user_id = session['user_id']
         date_param = request.args.get('date') or request.form.get('date')
         if date_param:
@@ -638,34 +523,25 @@ def register_routes(app):
 
         prev_date = (entry_date - timedelta(days=1)).strftime("%Y-%m-%d")
         next_date = (entry_date + timedelta(days=1)).strftime("%Y-%m-%d")
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
         if request.method == 'POST':
             journal_text = request.form.get('journalText', '').strip()
-            cursor.execute('''
-                INSERT INTO journals (user_id, entry_date, entry)
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE entry = %s, updated_at = CURRENT_TIMESTAMP
-            ''', (user_id, entry_date, journal_text, journal_text))
-            conn.commit()
-            conn.close()
+            save_journal_entry(user_id, entry_date, journal_text)
             return redirect(url_for('journal', date=entry_date.strftime("%Y-%m-%d"), saved='true'))
 
-        cursor.execute('SELECT entry, mood FROM journals WHERE user_id = %s AND entry_date = %s', (user_id, entry_date))
-        row = cursor.fetchone()
-
-        journal_text = row['entry'] if row and 'entry' in row else ''
-        mood = row['mood'] if row and 'mood' in row else None
-        conn.close()
+        entry = get_journal_entry(user_id, entry_date)
+        journal_text = entry['entry'] if entry and 'entry' in entry else ''
+        mood = entry['mood'] if entry and 'mood' in entry else None
 
         show_saved_popup = request.args.get('saved') == 'true'
-        return render_template('journal_entry.html', journal_text=journal_text, mood=mood,
-                               today=entry_date.strftime("%B %d, %Y"),
-                               date_param=entry_date.strftime("%Y-%m-%d"),
-                               show_saved_popup=show_saved_popup,
-                               prev_date=prev_date,
-                               next_date=next_date)
+        return render_template('journal_entry.html', 
+                             journal_text=journal_text, 
+                             mood=mood,
+                             today=entry_date.strftime("%B %d, %Y"),
+                             date_param=entry_date.strftime("%Y-%m-%d"),
+                             show_saved_popup=show_saved_popup,
+                             prev_date=prev_date,
+                             next_date=next_date)
 
 
     @app.route('/delete_journal', methods=['POST'])
@@ -675,11 +551,7 @@ def register_routes(app):
         user_id = session.get('user_id')
 
         if user_id and date:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM journals WHERE user_id = %s AND entry_date = %s", (user_id, date))
-            conn.commit()
-            conn.close()
+            delete_journal_entry(user_id, date)
             return '', 200
 
         return '', 400
@@ -687,15 +559,7 @@ def register_routes(app):
     @app.route('/journal_calendar')
     @login_required()
     def journal_calendar():
-
-        user_id = session['user_id']
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT entry_date FROM journals WHERE user_id = %s', (user_id,))
-        rows = cursor.fetchall()
-        journal_dates = [row['entry_date'].strftime('%Y-%m-%d') for row in rows]
-        conn.close()
-
+        journal_dates = get_journal_dates(session['user_id'])
         return render_template('journal_calendar.html', journal_dates=journal_dates)
 
     """@app.route('/demo')
@@ -713,30 +577,20 @@ def register_routes(app):
     def current_session():
         if 'user_id' not in session:
             return jsonify({"error": "Unauthorized"}), 401
-
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT session_name FROM sessions WHERE user_id = %s AND current = TRUE', (session['user_id'],))
-            row = cursor.fetchone()
-        return jsonify({"session_name": row['session_name']} if row else {"session_name": None})
+        
+        current = get_current_session(session['user_id'])
+        return jsonify({"session_name": current['session_name']} if current else {"session_name": None})
     
 
     @login_required()
     @app.route('/api/session_types')
     def session_types():
-
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT persona FROM session_types ORDER BY persona')
-            types = [row['persona'] for row in cursor.fetchall()]
+        types = get_session_types()
         return jsonify(types)
     
     @app.route('/api/new_session', methods=['POST'])
     @login_required()
     def new_session():
-
         data = request.get_json()
         session_name = data.get('session_name')
         persona = data.get('persona')
@@ -744,39 +598,21 @@ def register_routes(app):
         if not session_name or not persona:
             return jsonify({"error": "Missing required fields"}), 400
 
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            # Mark existing sessions as not current
-            cursor.execute('UPDATE sessions SET current = FALSE WHERE user_id = %s', (session['user_id'],))
-            # Create new session
-            cursor.execute('''
-                INSERT INTO sessions (user_id, session_name, persona, current)
-                VALUES (%s, %s, %s, TRUE)
-            ''', (session['user_id'], session_name, persona))
-            conn.commit()
-
+        create_new_session(session['user_id'], session_name, persona)
         return jsonify({"status": "created", "session_name": session_name})
 
 
 
     @app.route('/api/delete_session', methods=['POST'])
     @login_required()
-    def delete_session():
-
+    def delete_session_route():
         data = request.get_json()
         session_name = data.get('session_name')
 
         if not session_name:
             return jsonify({"error": "Missing required fields"}), 400
 
-        conn = get_db_connection()
-        with conn:
-            cursor = conn.cursor()
-            # Mark existing sessions as not current
-            cursor.execute('DELETE from sessions WHERE user_id = %s and session_name = %s', (session['user_id'],session_name))
-            conn.commit()
-
+        delete_session(session['user_id'], session_name)
         return jsonify({"status": "deleted", "session_name": session_name})
 
 
@@ -787,28 +623,15 @@ def register_routes(app):
     @app.route('/api/user_settings', methods=['POST'])
     @login_required()
     def user_settings():
-
         user_id = session['user_id']
         data = request.get_json()
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        for key, value in data.items():
-            cursor.execute('''
-                INSERT INTO user_settings (user_id, setting_key , setting_value )
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE `setting_value` = %s
-            ''', (user_id, key, str(value), str(value)))
-
-        conn.commit()
-        conn.close()
+        save_user_settings(user_id, data)
 
         # Update in-session overrides
         updated_settings = session.get('user_settings', {})
         updated_settings.update({k: str(v) for k, v in data.items()})
         session['user_settings'] = updated_settings
-
 
         dumpConfig()
 
@@ -895,32 +718,18 @@ def register_routes(app):
 
 
         # Check if email already exists
-        cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
-        if cursor.fetchone():
+        if check_user_exists(email):
             flash("Email already registered.")
             return redirect(url_for('signup_with_plan', plan=plan))
 
         # Create user
         hashed_pw = generate_password_hash(password)
         token = generate_email_token()
-        cursor.execute(
-            "INSERT INTO users (username, email, password, email_token) VALUES (%s, %s, %s, %s)",
-            (name, email, hashed_pw, token)
-        )
-        user_id = cursor.lastrowid
+        user_id = create_user(name, email, hashed_pw, token)
 
         # Create subscription
-        billing_cycle = None
-        if plan != 'basic':
-            billing_cycle = 'monthly'  # or ask for this later in profile/settings
-
-        cursor.execute(
-            "INSERT INTO subscriptions (user_id, plan_type, billing_cycle) VALUES (%s, %s, %s)",
-            (user_id, plan, billing_cycle)
-        )
-
-        conn.commit()
-        conn.close()
+        billing_cycle = 'monthly' if plan != 'basic' else None
+        create_subscription(user_id, plan, billing_cycle)
 
         print(f"Send email with verification token {token}")
         send_verification_email(email, name, token)
@@ -954,18 +763,7 @@ def register_routes(app):
             return redirect(url_for('change_subscription'))
 
         user_id = session.get('user_id')
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Update the subscription
-        cursor.execute("""
-            UPDATE subscriptions
-            SET plan_type = %s, updated_at = NOW()
-            WHERE user_id = %s
-        """, (plan, user_id))
-        conn.commit()
-        conn.close()
+        update_subscription(user_id, plan)
 
         # Update session
         session['user_subscription']['plan_type'] = plan
@@ -980,21 +778,7 @@ def register_routes(app):
             flash("Invalid verification link.")
             return redirect(url_for('signin'))
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE email_token = %s", (token,))
-        user = cursor.fetchone()
-
-        if user:
-            cursor.execute("""
-                UPDATE users
-                SET verified = TRUE, email_token = NULL
-                WHERE id = %s
-            """, (user['id'],))
-
-            conn.commit()
-            conn.close()
-
+        if verify_user_email(token):
             flash("Email confirmed. You can now log in.")
             return redirect(url_for('signin'))
         else:

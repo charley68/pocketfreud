@@ -327,3 +327,634 @@ def get_journals_by_days(user_id, days):
     """, (user_id, days))
     return cursor.fetchall()
 
+def verify_user_email(token):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email_token = %s", (token,))
+    user = cursor.fetchone()
+
+    if user:
+        cursor.execute("""
+            UPDATE users
+            SET verified = TRUE, email_token = NULL
+            WHERE id = %s
+        """, (user['id'],))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    return False
+
+def check_user_exists(email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+    exists = cursor.fetchone() is not None
+    cursor.close()
+    conn.close()
+    return exists
+
+def create_user(username, email, password_hash, email_token):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO users (username, email, password, email_token) VALUES (%s, %s, %s, %s)",
+        (username, email, password_hash, email_token)
+    )
+    user_id = cursor.lastrowid
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return user_id
+
+def get_user_profile(email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, username, age, sex, bio, password, verified FROM users WHERE email = %s', (email,))
+    profile = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return profile
+
+def update_user_profile(user_id, username, age, sex, occupation, bio):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users SET username = %s, age = %s, sex = %s, occupation = %s, bio = %s
+        WHERE id = %s
+    """, (username, age, sex, occupation, bio, user_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def save_user_reset_token(email, token):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET reset_token = %s WHERE email = %s", (token, email))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_user_password(token, password_hash):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET password = %s, reset_token = NULL WHERE reset_token = %s", (password_hash, token))
+    affected = cursor.rowcount
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return affected > 0
+
+def get_current_session(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT session_name, persona FROM sessions WHERE user_id = %s AND current = TRUE
+    ''', (user_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row
+
+def archive_session(user_id, session_name=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if session_name:
+        cursor.execute("""
+            UPDATE conversations
+            SET archive = 1, session = %s
+            WHERE user_id = %s AND archive = 0
+        """, (session_name, user_id))
+    else:
+        cursor.execute("""
+            UPDATE conversations
+            SET archive = 1
+            WHERE user_id = %s AND archive = 0
+        """, (user_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_current_chat(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM conversations WHERE user_id = %s AND archive = 0', (user_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_chat_history(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT session_name, start_date FROM sessions 
+        WHERE user_id = %s AND current = 0  
+        ORDER BY start_date DESC
+    ''', (user_id,))
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
+
+def restore_chat(user_id, session_name):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (user_id,))
+    cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name = %s', (user_id, session_name))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def rename_session(user_id, old_name, new_name):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Update sessions table
+    cursor.execute("""
+        UPDATE sessions SET session_name = %s 
+        WHERE user_id = %s AND session_name = %s
+    """, (new_name, user_id, old_name))
+    
+    # Update conversations table
+    cursor.execute("""
+        UPDATE conversations SET session = %s 
+        WHERE user_id = %s AND session = %s
+    """, (new_name, user_id, old_name))
+    
+    # Update summaries table
+    cursor.execute("""
+        UPDATE summaries SET session = %s 
+        WHERE user_id = %s AND session = %s
+    """, (new_name, user_id, old_name))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def create_new_session(user_id, session_name, persona):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Mark existing sessions as not current
+    cursor.execute('UPDATE sessions SET current = FALSE WHERE user_id = %s', (user_id,))
+    # Create new session
+    cursor.execute('''
+        INSERT INTO sessions (user_id, session_name, persona, current)
+        VALUES (%s, %s, %s, TRUE)
+    ''', (user_id, session_name, persona))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_session(user_id, session_name):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE from sessions WHERE user_id = %s and session_name = %s', 
+                  (user_id, session_name))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_session_persona(user_id, session_name, new_persona):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE sessions SET persona = %s WHERE user_id = %s AND session_name = %s",
+        (new_persona, user_id, session_name)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_session_types():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT persona FROM session_types ORDER BY persona')
+    types = [row['persona'] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return types
+
+def save_journal_entry(user_id, entry_date, entry_text, mood=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if entry exists
+    cursor.execute('SELECT id FROM journals WHERE user_id = %s AND entry_date = %s', (user_id, entry_date))
+    exists = cursor.fetchone()
+    
+    if exists:
+        # Update existing entry
+        update_fields = []
+        params = []
+        if entry_text is not None:
+            update_fields.append("entry = %s")
+            params.append(entry_text)
+        if mood is not None:
+            update_fields.append("mood = %s")
+            params.append(mood)
+        if update_fields:
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            params.extend([user_id, entry_date])
+            cursor.execute(f'''
+                UPDATE journals 
+                SET {', '.join(update_fields)}
+                WHERE user_id = %s AND entry_date = %s
+            ''', params)
+    else:
+        # Create new entry
+        cursor.execute('''
+            INSERT INTO journals (user_id, entry_date, entry, mood)
+            VALUES (%s, %s, %s, %s)
+        ''', (user_id, entry_date, entry_text, mood))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_journal_entry(user_id, entry_date):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT entry, mood FROM journals WHERE user_id = %s AND entry_date = %s', 
+                  (user_id, entry_date))
+    entry = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return entry
+
+def delete_journal_entry(user_id, entry_date):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM journals WHERE user_id = %s AND entry_date = %s", 
+                  (user_id, entry_date))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_journal_dates(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT entry_date FROM journals WHERE user_id = %s', (user_id,))
+    dates = [row['entry_date'].strftime('%Y-%m-%d') for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return dates
+
+def create_subscription(user_id, plan_type, billing_cycle=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO subscriptions (user_id, plan_type, billing_cycle) VALUES (%s, %s, %s)",
+        (user_id, plan_type, billing_cycle)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_subscription(user_id, plan_type):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE subscriptions
+        SET plan_type = %s, updated_at = NOW()
+        WHERE user_id = %s
+    """, (plan_type, user_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def save_user_settings(user_id, settings):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for key, value in settings.items():
+        cursor.execute('''
+            INSERT INTO user_settings (user_id, setting_key, setting_value)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE setting_value = %s
+        ''', (user_id, key, str(value), str(value)))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_monthly_tokens(user_id, total_tokens, month_year):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_tokens SET month_tokens = month_tokens + %s
+        WHERE user_id = %s AND token_month = %s
+    """, (total_tokens, user_id, month_year))
+    if cursor.rowcount == 0:
+        cursor.execute("""
+            INSERT INTO user_tokens (user_id, token_month, month_tokens)
+            VALUES (%s, %s, %s)
+        """, (user_id, month_year, total_tokens))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_monthly_tokens(user_id, month_year):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT month_tokens FROM user_tokens
+        WHERE user_id = %s AND token_month = %s
+    """, (user_id, month_year))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result.get("month_tokens", 0) if result else 0
+
+def get_session_messages(user_id, session_name, limit=20):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT role, message FROM conversations 
+        WHERE user_id = %s AND session = %s 
+        ORDER BY timestamp ASC LIMIT %s
+    ''', (user_id, session_name, limit))
+    messages = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return messages
+
+def get_user_info(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+def get_user_by_email_for_verification(email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, verified FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+def update_verification_token(user_id, token):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET email_token = %s WHERE id = %s", (token, user_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def save_chat_message(user_id, role, message, session_name, archive=0):
+    """Save a chat message to the conversations table"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO conversations (user_id, role, message, archive, session) VALUES (%s, %s, %s, %s, %s)',
+        (user_id, role, message, archive, session_name)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def track_token_usage(user_id, total_tokens, month_year):
+    """Track token usage for a user for the current month"""
+    conn = get_db_connection()
+    cursor = conn.cursor() 
+    cursor.execute("""
+        INSERT INTO user_tokens (user_id, token_month, month_tokens)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE month_tokens = month_tokens + %s
+    """, (user_id, month_year, total_tokens, total_tokens))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_chat_sessions(user_id):
+    """Get all chat sessions for a user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT session, timestamp 
+        FROM conversations 
+        WHERE user_id = %s
+        ORDER BY timestamp DESC
+    ''', (user_id,))
+    sessions = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return sessions
+
+def get_chat_session(user_id, session_name):
+    """Get all messages from a specific chat session"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT role, message, timestamp 
+        FROM conversations 
+        WHERE user_id = %s AND session = %s
+        ORDER BY timestamp ASC
+    ''', (user_id, session_name))
+    messages = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return messages
+
+def get_payment_status(subscription_id):
+    """Get the payment status for a subscription"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT status, payment_method, last_payment_date, next_billing_date 
+        FROM payment_status 
+        WHERE subscription_id = %s
+    """, (subscription_id,))
+    status = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return status
+
+def get_active_subscription(user_id):
+    """Get the active subscription details for a user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, plan_type, billing_cycle, start_date, end_date, is_active
+        FROM subscriptions 
+        WHERE user_id = %s AND is_active = TRUE
+    """, (user_id,))
+    subscription = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return subscription
+
+def cancel_subscription(subscription_id):
+    """Cancel a subscription by marking it as inactive"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE subscriptions 
+        SET is_active = FALSE, updated_at = NOW()
+        WHERE id = %s
+    """, (subscription_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_payment_status(subscription_id, status, payment_method=None):
+    """Update the payment status for a subscription"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE payment_status 
+        SET status = %s, payment_method = %s, last_payment_date = CURDATE()
+        WHERE subscription_id = %s
+    """, (status, payment_method, subscription_id))
+    if cursor.rowcount == 0:
+        cursor.execute("""
+            INSERT INTO payment_status (subscription_id, status, payment_method, last_payment_date)
+            VALUES (%s, %s, %s, CURDATE())
+        """, (subscription_id, status, payment_method))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def save_chat_thread(user_id, messages, session_name, persona=""):
+    """Save a complete chat thread to the database"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Create or update session
+        cursor.execute("""
+            INSERT INTO sessions (user_id, session_name, persona, current)
+            VALUES (%s, %s, %s, TRUE)
+            ON DUPLICATE KEY UPDATE 
+                persona = VALUES(persona),
+                current = VALUES(current)
+        """, (user_id, session_name, persona))
+
+        # Save each message
+        for msg in messages:
+            cursor.execute("""
+                INSERT INTO conversations 
+                (user_id, role, message, session, timestamp) 
+                VALUES (%s, %s, %s, %s, NOW())
+            """, (user_id, msg['role'], msg['content'], session_name))
+        
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_chat_thread(user_id, session_name, limit=None):
+    """Get all messages in a chat thread"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if limit:
+        cursor.execute("""
+            SELECT role, message, timestamp 
+            FROM conversations 
+            WHERE user_id = %s AND session = %s
+            ORDER BY timestamp DESC LIMIT %s
+        """, (user_id, session_name, limit))
+    else:
+        cursor.execute("""
+            SELECT role, message, timestamp 
+            FROM conversations 
+            WHERE user_id = %s AND session = %s
+            ORDER BY timestamp
+        """, (user_id, session_name))
+    messages = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return messages
+
+def clear_chat_history(user_id, session_name=None):
+    """Clear chat history for a user, optionally for a specific session"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if session_name:
+        cursor.execute("""
+            DELETE FROM conversations 
+            WHERE user_id = %s AND session = %s
+        """, (user_id, session_name))
+    else:
+        cursor.execute("DELETE FROM conversations WHERE user_id = %s", (user_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_user_settings_value(user_id, setting_key, default=None):
+    """Get a specific setting value for a user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT setting_value 
+        FROM user_settings 
+        WHERE user_id = %s AND setting_key = %s
+    """, (user_id, setting_key))
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result['setting_value'] if result else default
+
+def save_user_setting(user_id, setting_key, setting_value):
+    """Save a single setting for a user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO user_settings (user_id, setting_key, setting_value)
+        VALUES (%s, %s, %s)
+        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    """, (user_id, setting_key, setting_value))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_user_data(user_id):
+    """Delete all data associated with a user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Delete in correct order to respect foreign key constraints
+        cursor.execute("DELETE FROM conversations WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM summaries WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM journals WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM user_settings WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM user_tokens WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM sessions WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM subscriptions WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
+def merge_user_accounts(source_user_id, target_user_id):
+    """Merge data from source user into target user"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Update foreign keys in all related tables
+        tables = ['conversations', 'summaries', 'journals', 'user_settings',
+                 'user_tokens', 'sessions', 'subscriptions']
+        for table in tables:
+            cursor.execute(f"""
+                UPDATE {table} 
+                SET user_id = %s 
+                WHERE user_id = %s
+            """, (target_user_id, source_user_id))
+        
+        # Delete the source user
+        cursor.execute("DELETE FROM users WHERE id = %s", (source_user_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
+
