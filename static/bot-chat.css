@@ -1,6 +1,4 @@
-
-
-  .info-icon-wrapper {
+.info-icon-wrapper {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -226,4 +224,29 @@
   display: block;
   width: 100%;
   margin-bottom: 1rem;
+}
+
+@keyframes thinkingDots {
+  0%, 20% {
+    content: ".";
+  }
+  40% {
+    content: "..";
+  }
+  60%, 100% {
+    content: "...";
+  }
+}
+
+.thinking {
+  background: rgba(147, 112, 219, 0.1) !important;
+  border-left: 4px solid #9370DB;  
+  font-style: normal !important;
+  padding-left: 1rem !important;
+}
+
+.thinking::after {
+  content: "";
+  display: inline-block;
+  animation: thinkingDots 1.5s infinite;
 }

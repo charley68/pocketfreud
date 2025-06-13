@@ -116,6 +116,9 @@ function closeSuggestions() {
     const inputField = document.getElementById("userInput");
     const userText = inputField.value.trim();
     if (!userText) return;
+    
+    // Clear input field immediately
+    inputField.value = "";
   
     const userMessageDiv = document.createElement("div");
     userMessageDiv.className = "user-message";
@@ -124,8 +127,8 @@ function closeSuggestions() {
     chatBox.scrollTop = chatBox.scrollHeight;
   
     const typingDiv = document.createElement("div");
-    typingDiv.className = "bot-message";
-    typingDiv.innerHTML = `<em>PocketFreud is typing...</em>`;
+    typingDiv.className = "bot-message thinking";
+    typingDiv.innerHTML = `<strong>PocketFreud</strong> is thinking`;
     chatBox.appendChild(typingDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
   
