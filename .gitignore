@@ -9,6 +9,7 @@ client/.next/
 
 # Environment variables and secrets
 .env
+venv/
 *.pem
 
 # PM2 logs
@@ -36,3 +37,14 @@ Thumbs.db
 
 __pycache__/
 *.py[cod]
+
+
+dev.sh
+llm_test_framework/runModelTest.sh
+tf/build.sh
+tf/dev.sh
+tf/patch-file.sh
+tf/patch-prod.sh
+tf/patch-test.sh
+tf/patch.sh
+
