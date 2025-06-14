@@ -1,93 +1,77 @@
+import os
+import re
+import secrets
+import threading
 import traceback
 from datetime import datetime, date, timedelta
 from functools import wraps
-import secrets
-import threading
-import requests,os
 from flask import (
-    render_template, request, jsonify, redirect,
-    url_for, session, flash, current_app
+    request, session, redirect, url_for, render_template,
+    flash, jsonify, current_app, send_from_directory
 )
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Message
+
 from modules.extensions import mail
 
-from flask_mail import Message
-from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
-
-
 from modules.db import (
-    get_db_connection,
-    save_message_for_user,
-    load_user_settings,
-    get_last_summary,
-    get_last_summary_checkpoint,
-    get_messages_after,
-    save_summary,
-    dumpConfig,
-    get_journals_by_days,
-    verify_user_email,
-    check_user_exists,
     create_user,
     get_user_profile,
+    verify_user_email,
+    check_user_exists,
+    get_session_types,
+    get_user_by_email_for_verification,
+    update_verification_token,
+    create_subscription,
+    update_subscription,
+    save_user_settings,
+    get_chat_history,
+    get_chat_session,
+    get_chat_thread,
+    create_new_session,
+    save_chat_message,
+    get_db_connection,
+    get_user_info,
     update_user_profile,
     save_user_reset_token,
     update_user_password,
     get_current_session,
-    archive_session,
-    delete_current_chat,
-    get_chat_history,
+    get_session_messages,
+    get_last_summary,
+    get_last_summary_checkpoint,
+    get_messages_after,
+    track_token_usage,
+    save_summary,
     restore_chat,
     rename_session,
-    create_new_session,
-    delete_session,
     update_session_persona,
-    get_session_types,
+    get_monthly_tokens,
+    archive_session,
+    delete_current_chat,
     save_journal_entry,
     get_journal_entry,
     delete_journal_entry,
     get_journal_dates,
-    create_subscription,
-    update_subscription,
-    save_user_settings,
-    update_monthly_tokens,
-    get_monthly_tokens,
-    get_session_messages,
-    get_user_info,
-    get_user_by_email_for_verification,
-    update_verification_token,
-    save_chat_message,
-    track_token_usage,
-    get_chat_sessions,
-    get_chat_session,
-    get_payment_status,
-    get_active_subscription,
-    cancel_subscription,
-    update_payment_status,
-    save_chat_thread,
-    get_chat_thread,
-    clear_chat_history,
-    get_user_settings_value,
-    save_user_setting,
-    delete_user_data,
-    merge_user_accounts
+    get_session_types,
+    delete_session,
+    get_journals_by_days,
+    load_user_settings
 )
 
 from modules.helpers import (
     inject_base_url,
     inject_env,
     is_valid_email,
-    pick_initial_greeting,
-    get_setting,
+    send_verification_email,
+    generate_email_token,
+    send_reset_email,
+    check_captcha,
     call_llm_api,
     build_conv_history,
     detect_crisis_response,
     generate_incremental_summary,
-    extract_top_themes,
     generate_monthly_summary,
-    send_verification_email,
-    generate_email_token,
-    send_reset_email,
-    check_captcha
+    extract_top_themes
 )
 
 
@@ -137,6 +121,10 @@ def register_routes(app):
     @app.route('/privacy')
     def privacy():
         return render_template('privacy.html')
+
+    @app.route('/faq')
+    def faq():
+        return render_template('faq.html')
 
     @app.route('/debug')
     def debug():
@@ -274,6 +262,10 @@ def register_routes(app):
         persona = data.get('session_type')
         model = session.get('user_settings', {}).get('model')
 
+        # Validate required fields
+        if not messages or not session_name:
+            return jsonify({'error': 'Missing required fields'}), 400
+
         user_id = session["user_id"]
         user_input = messages[-1]['content']
         responses = []
@@ -367,17 +359,49 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
 
-    @app.route('/settings')
+    @app.route('/settings', methods=['GET', 'POST'])
     @login_required()
     def settings():
-        return render_template('settings.html', username=session.get('username'),
-                settings={
-                    "typing_delay": get_setting("typing_delay", int),
-                    "voice": get_setting("voice", str),
-                    "msg_retention": get_setting("msg_retention", int),
-                    "model": get_setting("model", str)
-                })
-    
+        if 'user_id' not in session:
+            return redirect(url_for('signin'))
+        
+        if request.method == 'POST':
+            # Update settings
+            user_id = session['user_id']
+            settings = {
+                'typing_delay': request.form.get('typing_delay'),
+                'voice': request.form.get('voice'),
+                'msg_retention': request.form.get('msg_retention'),
+                'model': request.form.get('model'),
+                'theme': request.form.get('theme'),
+                'summary_count': request.form.get('summary_count')
+            }
+            save_user_settings(user_id, settings)
+
+            # Update in-session overrides
+            updated_settings = session.get('user_settings', {})
+            updated_settings.update({k: str(v) for k, v in settings.items() if v is not None})
+            session['user_settings'] = updated_settings
+            
+            flash("Settings updated successfully!")
+            return redirect(url_for('settings'))
+        
+        # GET request - show settings page
+        settings = session.get('user_settings', {})
+        if not settings:
+            settings = {
+                'typing_delay': 1000,
+                'voice': 'en-US',
+                'msg_retention': 50,
+                'model': 'gpt-3.5-turbo',
+                'theme': 'default',
+                'summary_count': 100
+            }
+        return render_template('settings.html', 
+                             username=session.get('username'),
+                             settings=settings)
+
+
     @app.route('/api/config', methods=['GET'])
     def get_config():
         return jsonify(app.config["APP_CONFIG"])
@@ -517,7 +541,11 @@ def register_routes(app):
         user_id = session['user_id']
         date_param = request.args.get('date') or request.form.get('date')
         if date_param:
-            entry_date = datetime.strptime(date_param, "%Y-%m-%d").date()
+            try:
+                entry_date = datetime.strptime(date_param, "%Y-%m-%d").date()
+            except ValueError:
+                flash("Invalid date format. Please use YYYY-MM-DD format.")
+                return redirect(url_for('journal')), 400
         else:
             entry_date = date.today()
 
@@ -589,18 +617,56 @@ def register_routes(app):
         return jsonify(types)
     
     @app.route('/api/new_session', methods=['POST'])
-    @login_required()
     def new_session():
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+            
         data = request.get_json()
         session_name = data.get('session_name')
         persona = data.get('persona')
-
+        
         if not session_name or not persona:
-            return jsonify({"error": "Missing required fields"}), 400
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Validate persona type
+        valid_personas = get_session_types()
+        if persona not in valid_personas:
+            return jsonify({'error': 'Invalid persona type'}), 400
+            
+        try:
+            create_new_session(session['user_id'], session_name, persona)
+            return jsonify({'status': 'success'})
+        except Exception as e:
+            app.logger.error(f"Error creating session: {str(e)}")
+            return jsonify({'error': 'Failed to create session'}), 500
 
-        create_new_session(session['user_id'], session_name, persona)
-        return jsonify({"status": "created", "session_name": session_name})
+    @app.route('/api/chat_thread/<session_name>')
+    @login_required()
+    def get_chat_thread_route(session_name):
+        if not session_name:
+            return jsonify({"error": "Missing session name"}), 400
+            
+        try:
+            thread = get_chat_thread(session['user_id'], session_name)
+            thread_data = [{"role": msg['role'], "content": msg['message']} for msg in thread]
+            return jsonify(thread_data)
+        except Exception as e:
+            app.logger.error(f"Error getting chat thread: {str(e)}")
+            return jsonify({"error": "Failed to get chat thread"}), 500
 
+
+    @app.route('/api/chat_history')
+    def get_chat_history_api():
+        if 'user_id' not in session:
+            return jsonify({'error': 'Not logged in'}), 401
+            
+        try:
+            history = get_chat_history(session['user_id'])
+            return jsonify(history)
+        except Exception as e:
+            app.logger.error(f"Error getting chat history: {str(e)}")
+            return jsonify({'error': 'Failed to get chat history'}), 500
+    
 
 
     @app.route('/api/delete_session', methods=['POST'])
@@ -620,20 +686,36 @@ def register_routes(app):
 
 
 
-    @app.route('/api/user_settings', methods=['POST'])
+    @app.route('/api/user_settings', methods=['GET', 'POST'])
     @login_required()
     def user_settings():
         user_id = session['user_id']
+
+        if request.method == 'GET':
+            settings = session.get('user_settings', {})
+            if not settings:
+                # Load default settings
+                settings = {
+                    'typing_delay': 1000,
+                    'voice': 'en-US',
+                    'msg_retention': 50,
+                    'model': 'gpt-3.5-turbo',
+                    'theme': 'default',
+                    'summary_count': 100
+                }
+            return jsonify(settings)
+
+        # POST method
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
 
         save_user_settings(user_id, data)
 
-        # Update in-session overrides
+        # Update in-session overrides 
         updated_settings = session.get('user_settings', {})
         updated_settings.update({k: str(v) for k, v in data.items()})
         session['user_settings'] = updated_settings
-
-        dumpConfig()
 
         return jsonify({'status': 'ok'})
     
@@ -688,53 +770,67 @@ def register_routes(app):
 
     @app.route('/signup_with_plan', methods=['GET', 'POST'])
     def signup_with_plan():
-
-
-        plan = request.args.get('plan')
         if request.method == 'GET':
-            # User came from /subscribe
+            plan = request.args.get('plan')
             if plan not in ['basic', 'professional', 'premium']:
                 flash(f"Invalid plan {plan} selected.")
                 return redirect(url_for('show_subscription_options'))
             return render_template('signup_with_plan.html', selected_plan=plan)
 
-
-
         # POST method - handle form submission
-        plan = request.form.get('plan')  # From hidden input field
+        try:
+            name = request.form.get('username')
+            email = request.form.get('email').lower()
+            password = request.form.get('password')
+            plan = request.form.get('plan')
+            
+            if not all([name, email, password, plan]):
+                flash('All fields are required.')
+                return redirect(url_for('signup_with_plan', plan=plan))
 
-        name = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        check_captcha(request)
+            if not is_valid_email(email):
+                flash('Invalid email format.')
+                return redirect(url_for('signup_with_plan', plan=plan))
 
+            # Check if email already exists
+            if check_user_exists(email):
+                flash("Email already registered.")
+                return redirect(url_for('signup_with_plan', plan=plan))
+                
+            # Now validate CAPTCHA
+            captcha_result = check_captcha(request)
+            if captcha_result:  # If not None, it's an error string
+                return redirect(url_for('signup_with_plan', plan=plan))
 
-        if not is_valid_email(email):
-            flash('Invalid email format.')
-            return redirect(url_for('signup_with_plan'))
+            # Create user
+            hashed_pw = generate_password_hash(password)
+            token = generate_email_token()
+            
+            try:
+                # Use db.py functions to create user and subscription with proper transaction handling
+                user_id = create_user(name, email, hashed_pw, token)
+                if not user_id:
+                    raise Exception("Failed to create user - no ID returned")
+                    
+                billing_cycle = 'monthly' if plan != 'basic' else None
+                subscription_id = create_subscription(user_id, plan, billing_cycle)
+                if not subscription_id:
+                    raise Exception("Failed to create subscription")
+                    
+            except Exception as e:
+                app.logger.error(f"Error in signup process: {str(e)}")
+                flash("Error creating account. Please try again.")
+                return redirect(url_for('signup_with_plan', plan=plan))
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-
-        # Check if email already exists
-        if check_user_exists(email):
-            flash("Email already registered.")
+            print(f"Send email with verification token {token}")
+            send_verification_email(email, name, token)
+            
+            return render_template('signup_success.html', username=name)
+            
+        except Exception as e:
+            app.logger.error(f"Error in signup: {str(e)}")
+            flash("An error occurred. Please try again.")
             return redirect(url_for('signup_with_plan', plan=plan))
-
-        # Create user
-        hashed_pw = generate_password_hash(password)
-        token = generate_email_token()
-        user_id = create_user(name, email, hashed_pw, token)
-
-        # Create subscription
-        billing_cycle = 'monthly' if plan != 'basic' else None
-        create_subscription(user_id, plan, billing_cycle)
-
-        print(f"Send email with verification token {token}")
-        send_verification_email(email, name, token)
-        
-        return render_template('signup_success.html', username=name)
     
 
 
@@ -757,19 +853,49 @@ def register_routes(app):
 
 
     @app.route('/update_subscription/<plan>')
-    def update_subscription(plan):
+    @app.route('/update_user_subscription/<plan>')  # Adding alias for compatibility
+    def update_user_subscription(plan):
+        if 'user_id' not in session:
+            return redirect(url_for('signin'))
+            
         if plan not in ['basic', 'professional', 'premium']:
             flash("Invalid plan selected.")
-            return redirect(url_for('change_subscription'))
+            return redirect(url_for('change_subscription')), 400
 
-        user_id = session.get('user_id')
-        update_subscription(user_id, plan)
+        try:
+            user_id = session['user_id']
+            update_subscription(user_id, plan)
+            
+            # Update session
+            session['user_subscription'] = {
+                'plan_type': plan,
+                'is_active': True
+            }
+            
+            flash(f"Successfully updated to {plan.upper()} plan!")
+            return redirect(url_for('home'))
+        except Exception as e:
+            app.logger.error(f"Error updating subscription: {str(e)}")
+            flash("Error updating subscription. Please try again.")
+            return redirect(url_for('change_subscription')), 500
 
-        # Update session
-        session['user_subscription']['plan_type'] = plan
-
-        flash(f"Subscription updated to {plan.upper()}")
-        return redirect(url_for('home'))
+    @app.before_request
+    def require_login():
+        """Require login for protected routes"""
+        protected_paths = ['/profile', '/settings', '/journal', '/api/chat', '/insights']
+        public_paths = ['/', '/signin', '/signup_with_plan', '/verify_email', '/resend_verification',
+                       '/forgot_password', '/reset_password', '/about', '/terms', '/privacy', '/faq', 
+                       '/contact', '/debug']
+        
+        # Check if path is protected or not in public paths
+        needs_auth = (request.path in protected_paths or 
+                     (request.path not in public_paths and 
+                      not any(request.path.startswith(p) for p in ['/static/', '/api/public/'])))
+        
+        if needs_auth and 'user_id' not in session and request.method != 'OPTIONS':
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'unauthorized'}), 401
+            return redirect(url_for('signin'))
 
     @app.route('/verify_email')
     def verify_email():
@@ -779,12 +905,11 @@ def register_routes(app):
             return redirect(url_for('signin'))
 
         if verify_user_email(token):
-            flash("Email confirmed. You can now log in.")
+            flash("Email confirmed! You can now log in.")
             return redirect(url_for('signin'))
         else:
             flash("Verification failed or already completed.")
             return redirect(url_for('signin'))
-        
 
     def send_async_email(app, msg):
         with app.app_context():

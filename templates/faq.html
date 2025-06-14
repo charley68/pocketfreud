@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FAQ - PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <style>
+    body {
+      background: linear-gradient(to bottom, #1d2636, #2a3b52);
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: transparent;
+    }
+
+    .top-bar img.logo {
+      width: 40px;
+      height: 40px;
+    }
+
+    .top-bar h1 {
+      font-size: 1.6rem;
+      color: #fff;
+    }
+
+    .faq-container {
+      max-width: 720px;
+      margin: 3rem auto 6rem;
+      background: #fff;
+      color: #333;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .faq-container h2 {
+      text-align: center;
+      color: #6e60e6;
+      margin-bottom: 1.5rem;
+    }
+
+    .faq-item {
+      margin-bottom: 1.5rem;
+    }
+
+    .faq-question {
+      background: #f5f5f5;
+      color: #333;
+      font-weight: 600;
+      border: none;
+      padding: 1rem;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .faq-question:hover {
+      background: #eaeaea;
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 1rem;
+      background: #fafafa;
+      border-radius: 0 0 8px 8px;
+      border-top: 1px solid #ddd;
+      margin-top: -1rem;
+    }
+
+    .faq-question.active + .faq-answer {
+      display: block;
+    }
+
+    footer.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: #1e2b42;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    footer.bottom-nav a {
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
+    <h1>PocketFreud</h1>
+  </div>
+
+  <div class="faq-container">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <button class="faq-question">Is PocketFreud free to use?</button>
+      <div class="faq-answer">
+        Yes! We offer a free plan with core features. Optional paid plans unlock deeper insights, additional personalities, and premium tools.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Is my data private?</button>
+      <div class="faq-answer">
+        Absolutely. Your journal and chat data are stored securely and encrypted. You can delete your data or account anytime.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Do I need to give personal details?</button>
+      <div class="faq-answer">
+        No. You can use PocketFreud anonymously. Sharing age or preferences helps tailor responses, but it's completely optional.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Can I use PocketFreud on my phone?</button>
+      <div class="faq-answer">
+        Yes — PocketFreud is mobile-friendly and works great in your phone’s browser. A native app is coming soon!
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question">Is PocketFreud a replacement for therapy?</button>
+      <div class="faq-answer">
+        No. PocketFreud offers emotional support and self-reflection tools but is not a substitute for professional therapy.
+      </div>
+    </div>
+  </div>
+
+  <footer class="bottom-nav">
+    <a href="{{ url_for('home') }}">🏠 Return to Home</a>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>

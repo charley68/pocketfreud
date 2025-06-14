@@ -42,7 +42,7 @@
                     ✅ Current Plan
                     </div>
                 {% else %}
-                    <a href="{{ url_for('signup_with_plan', plan='basic') if not change_mode else url_for('update_subscription', plan='basic') }}"
+                    <a href="{{ url_for('signup_with_plan', plan='basic') if not change_mode else url_for('update_user_subscription', plan='basic') }}"
                     class="btn">SUBSCRIBE</a>
                 {% endif %}
 
@@ -70,7 +70,7 @@
                     ✅ Current Plan
                     </div>
                 {% else %}
-                    <a href="{{ url_for('signup_with_plan', plan='professional') if not change_mode else url_for('update_subscription', plan='professional') }}"
+                    <a href="{{ url_for('signup_with_plan', plan='professional') if not change_mode else url_for('update_user_subscription', plan='professional') }}"
                     class="btn">SUBSCRIBE</a>
                 {% endif %}
           </div>
@@ -99,7 +99,7 @@
                 ✅ Current Plan
                 </div>
                 {% else %}
-                    <a href="{{ url_for('signup_with_plan', plan='premium') if not change_mode else url_for('update_subscription', plan='premium') }}"
+                    <a href="{{ url_for('signup_with_plan', plan='premium') if not change_mode else url_for('update_user_subscription', plan='premium') }}"
                     class="btn">SUBSCRIBE</a>
                 {% endif %}
 

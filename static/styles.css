@@ -530,6 +530,7 @@ h2 {
   right: 1rem;
 }
 
+/*
 .plan-badge {
   position: absolute;
   top: 1rem;
@@ -545,7 +546,29 @@ h2 {
   text-decoration: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
+*/
 
+.plan-badge {
+  position: absolute;
+  top: 4.9rem;  /* below the logo */
+  left: 1.3rem;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background-color: #f6b600;
+  color: #1e1e1e;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 1500;
+  width: fit-content;
+  max-width: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 
 /* MODAL DEISGN - POPUPS */
@@ -695,6 +718,65 @@ body.prod-env .modal button {
   color: white;
 }*/
 
+.hamburger {
+  font-size: 1.8rem;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: white;
+  display: none;
+  z-index: 2000;
+}
+
+.mobile-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 70px; /* just below the top bar */
+  right: 10px;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 10px;
+  padding: 0.5rem 0;
+  min-width: 180px;
+  z-index: 3000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu a {
+  color: white;
+  padding: 0.8rem 1.2rem;
+  text-decoration: none;
+  font-size: 1.05rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.mobile-menu a:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.hamburger {
+    display: block;
+  }
+  .nav-buttons {
+    display: none;
+  }
+
+.mobile-menu {
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.mobile-menu.show {
+  display: flex;
+  transform: translateX(0);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* MOBILE */
 
@@ -721,13 +803,7 @@ body.prod-env .modal button {
   }
 
 
-  .plan-badge {
-    position: absolute;
-    top: 2.2rem;
-    right: 1rem;
-    font-size: 0.7rem;
-    padding: 4px 10px;
-  }
+
 
 
 

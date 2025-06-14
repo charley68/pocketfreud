@@ -16,6 +16,21 @@
     <div class="branding">
       <h1 class="app-title">PocketFreud</h1>
     </div>
+
+    <!-- Hamburger Icon -->
+    <div class="hamburger" onclick="toggleMobileMenu()">
+      &#9776;
+    </div>
+
+    <!-- Mobile Slide-Out Menu -->
+    <div id="mobileMenu" class="mobile-menu">
+      <a href="{{ url_for('about') }}">Learn More</a>
+      <a href="{{ url_for('contact') }}">Contact Us</a>
+      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+      <a href="{{ url_for('terms') }}">Terms of Use</a>
+      <a href="{{ url_for('faq') }}">FAQ</a>
+≈
+    </div>
   
     <nav class="nav-buttons">
       {% if 'username' in session %}
@@ -81,6 +96,9 @@
   <div class="footer-copy">
     &copy; PocketFreud 2025. All rights reserved.
   </div>
+
+ <script src="{{ url_for('static', filename='common.js') }}"></script>
+
 </body>
 
 </html>

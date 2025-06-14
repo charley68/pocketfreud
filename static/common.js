@@ -32,3 +32,27 @@ async function about() {
   function closeAbout() {
     document.getElementById("aboutModal").style.display = "none";
   }
+
+  function toggleMobileMenu() {
+      document.getElementById('mobileMenu').classList.toggle('show');
+  }
+
+  document.addEventListener('click', function(event) {
+      const menu = document.getElementById('mobileMenu');
+      const hamburger = document.querySelector('.hamburger');
+      
+      // If menu is open and click is outside both menu and hamburger icon, close it
+      if (menu.classList.contains('show') &&
+          !menu.contains(event.target) &&
+          !hamburger.contains(event.target)) {
+        menu.classList.remove('show');
+      }
+});
+
+    // Close mobile menu when a link is clicked
+const menuLinks = document.querySelectorAll('.mobile-menu a');
+menuLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      document.getElementById('mobileMenu').classList.remove('show');
+    });
+});

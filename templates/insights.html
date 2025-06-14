@@ -48,6 +48,8 @@
     <div class="branding">
       <h1 class="app-title">PocketFreud</h1>
     </div>
+
+
     {% if session['user_subscription'] %}
     <div>
       <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
@@ -204,6 +206,7 @@
         setTimeout(loadInsights, 100);
       }
     });
+
   </script>
 </body>
 </html>

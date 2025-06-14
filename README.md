@@ -43,3 +43,10 @@ This project was initiated independently, on my own time, using personal resourc
 Intent
 
 PocketFreud is a personal innovation project driven by my lived experience and technical curiosity. The project is currently in development and not yet monetized, but I reserve all rights to its intellectual property, codebase, branding, and future commercial applications.
+
+
+
+TESTING
+pip install pytest pytest-cov
+mysql -u root -e "GRANT ALL PRIVILEGES ON test_pocketfreud.* TO 'freud'@'localhost'; FLUSH PRIVILEGES;"
+./run_tests.sh
