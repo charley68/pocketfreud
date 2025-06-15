@@ -1,0 +1,64 @@
+<!-- Back Navigation -->
+<div class="back-navigation">
+  <button onclick="goBack()" class="back-button">
+    ← Back
+  </button>
+</div>
+
+<script>
+function goBack() {
+  // Check if there's a previous page in history
+  if (document.referrer && document.referrer !== window.location.href) {
+    // Go back to the previous page
+    window.history.back();
+  } else {
+    // Fallback to home if no referrer
+    window.location.href = "{{ url_for('home') }}";
+  }
+}
+</script>
+
+<style>
+.back-navigation {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.back-button {
+  background: rgba(30, 43, 66, 0.9);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.back-button:hover {
+  background: rgba(30, 43, 66, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.back-button:active {
+  transform: translateY(0);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .back-navigation {
+    top: 70px;
+    left: 10px;
+  }
+  
+  .back-button {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+</style>

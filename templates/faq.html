@@ -145,9 +145,7 @@
     </div>
   </div>
 
-  <footer class="bottom-nav">
-    <a href="{{ url_for('home') }}">🏠 Return to Home</a>
-  </footer>
+  {% include 'includes/back_navigation.html' %}
 
   <script>
     document.querySelectorAll('.faq-question').forEach(btn => {

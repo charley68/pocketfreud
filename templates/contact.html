@@ -111,13 +111,7 @@
 
     <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-        <header class="top-bar">
-          <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
-          <div class="branding">
-            <h1 class="app-title">PocketFreud</h1>
-          </div>
-        
-        </header>
+        {% include 'includes/header_simple.html' %}
 
 
   <!-- ✅ Contact Form Card -->

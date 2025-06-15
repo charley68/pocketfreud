@@ -506,20 +506,21 @@ def delete_current_chat(user_id):
     conn.close()
 
 def get_chat_history(user_id):
-    """Get all chat sessions for a user"""
+    """Get all chat sessions for a user (excluding current active session)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
             SELECT DISTINCT 
-                s.session_name as name,
+                s.session_name,
                 s.persona as type,
+                s.start_date,
                 MAX(c.timestamp) as last_message,
                 COUNT(c.id) as message_count
             FROM sessions s
             LEFT JOIN conversations c ON s.user_id = c.user_id AND s.session_name = c.session
-            WHERE s.user_id = %s AND s.current = TRUE
-            GROUP BY s.session_name, s.persona
+            WHERE s.user_id = %s AND s.current = 0
+            GROUP BY s.session_name, s.persona, s.start_date
             ORDER BY last_message DESC
         """, (user_id,))
         sessions = cursor.fetchall()
@@ -531,11 +532,28 @@ def get_chat_history(user_id):
 def restore_chat(user_id, session_name):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (user_id,))
-    cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name = %s', (user_id, session_name))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        # First check if the target session exists
+        cursor.execute('SELECT id FROM sessions WHERE user_id = %s AND session_name = %s', (user_id, session_name))
+        session_exists = cursor.fetchone()
+        
+        if not session_exists:
+            return False  # Session doesn't exist
+        
+        # Set all existing sessions to not current
+        cursor.execute('UPDATE sessions SET current = 0 WHERE user_id = %s AND current = 1', (user_id,))
+        
+        # Set the specific session to current  
+        cursor.execute('UPDATE sessions SET current = 1 WHERE user_id = %s AND session_name = %s', (user_id, session_name))
+        
+        conn.commit()
+        return True  # Successfully restored
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
 
 def rename_session(user_id, old_name, new_name):
     conn = get_db_connection()

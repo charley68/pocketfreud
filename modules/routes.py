@@ -419,8 +419,18 @@ def register_routes(app):
         data = request.get_json()
         session_name = data.get('restore')
         
-        restore_chat(session['user_id'], session_name)
-        return '', 204
+        if not session_name:
+            return jsonify({'error': 'Missing session name'}), 400
+        
+        try:
+            success = restore_chat(session['user_id'], session_name)
+            if success:
+                return '', 204
+            else:
+                return jsonify({'error': 'Session not found'}), 404
+        except Exception as e:
+            app.logger.error(f"Error restoring chat session: {str(e)}")
+            return jsonify({'error': 'Failed to restore session'}), 500
 
 
     @app.route("/api/rename_session", methods=["POST"])
@@ -655,17 +665,6 @@ def register_routes(app):
             return jsonify({"error": "Failed to get chat thread"}), 500
 
 
-    @app.route('/api/chat_history')
-    def get_chat_history_api():
-        if 'user_id' not in session:
-            return jsonify({'error': 'Not logged in'}), 401
-            
-        try:
-            history = get_chat_history(session['user_id'])
-            return jsonify(history)
-        except Exception as e:
-            app.logger.error(f"Error getting chat history: {str(e)}")
-            return jsonify({'error': 'Failed to get chat history'}), 500
     
 
 

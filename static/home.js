@@ -171,9 +171,11 @@ async function loadHistoryModal() {
 
   history.forEach(row => {
     const tr = document.createElement("tr");
+    const date = new Date(row.start_date);
+    const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().slice(-2)}`;
     tr.innerHTML = `
       <td>${row.session_name}</td>
-      <td>${new Date(row.start_date).toLocaleString()}</td>
+      <td>${formattedDate}</td>
       <td><button onclick="restoreSession('${row.session_name}')">Restore</button></td>
       <td><button class="delete-btn" onclick="deleteSession('${row.session_name}')"><img src="/static/icons/bin.png" alt="Delete"></button>
     `;

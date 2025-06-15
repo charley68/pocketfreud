@@ -10,43 +10,7 @@
 
 <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
 
-
-
-
-  <div class="top-bar authenticated">
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="PocketFreud Logo" class="logo">
-    
-    <div class="branding">
-      <h1 class="app-title">PocketFreud</h1>
-    </div>
-
-        <!-- Hamburger Icon -->
-    <div class="hamburger" onclick="toggleMobileMenu()">
-      &#9776;
-    </div>
-
-    <!-- Mobile Slide-Out Menu -->
-    <div id="mobileMenu" class="mobile-menu">
-      <a href="{{ url_for('about') }}">Learn More</a>
-      <a href="{{ url_for('contact') }}">Contact Us</a>
-      <a href="{{ url_for('privacy') }}">Privacy Policy</a>
-      <a href="{{ url_for('terms') }}">Terms of Use</a>
-≈
-    </div>
-  
-    {% if session['user_subscription'] %}
-      <div>
-
-        <a href="{{ url_for('change_subscription') }}" class="plan-badge {{ session['user_subscription']['plan_type']|lower }}">
-          {% if session['user_subscription']['plan_type'] == 'basic' %}BASIC
-          {% elif session['user_subscription']['plan_type'] == 'professional' %}PRO
-          {% elif session['user_subscription']['plan_type'] == 'premium' %}PREM
-          {% endif %}
-        </a>
-      </div>
-    {% endif %}
-
-  </div>
+  {% include 'includes/header_authenticated.html' %}
 
 
 

@@ -1,0 +1,7 @@
+<!-- Simple Public Header -->
+<header class="top-bar">
+  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+  <div class="branding">
+    <h1 class="app-title">{{ page_title if page_title is defined else 'PocketFreud' }}</h1>
+  </div>
+</header>

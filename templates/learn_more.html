@@ -134,16 +134,7 @@
 
 
   <div class="footer-spacer"></div>
-  <footer class="bottom-nav">
-    <a href="{{ url_for('home') }}">
-      <div><i class="icon">🏠</i><span>Home</span></div>
-    </a>
-
-    <a href="{{ url_for('privacy') }}">
-      <div><i class="icon">🔒</i><span>Privacy Policy</span></div>
-    </a>
-
-  </footer>
+  {% include 'includes/back_navigation.html' %}
 
 
 </body>
