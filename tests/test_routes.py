@@ -317,12 +317,20 @@ def test_chat_sessions(auth_client, test_db):
     })
     assert response.status_code == 200
     
-    # Get chat history
+    # Create a second session to make the first one non-current (so it appears in history)
+    second_session_name = "Current Session"
+    response = auth_client.post('/api/new_session', json={
+        'session_name': second_session_name,
+        'persona': 'Life Coach'
+    })
+    assert response.status_code == 200
+    
+    # Get chat history - should now show the first session (non-current)
     response = auth_client.get('/api/chat_history')
     assert response.status_code == 200
     history = json.loads(response.data)
     assert len(history) > 0
-    assert any(session['name'] == session_name for session in history)
+    assert any(session['session_name'] == session_name for session in history)
     
     # Verify session contents
     response = auth_client.get(f'/api/chat_thread/{session_name}')
@@ -673,3 +681,239 @@ def test_error_handling(client, auth_client):
         'persona': 'InvalidType'
     })
     assert response.status_code == 400  # Should fail with invalid persona type
+
+def test_restore_chat_functionality(auth_client, test_db):
+    """Test the restore chat session functionality"""
+    try:
+        cursor = test_db.cursor()
+        
+        # Create multiple test sessions
+        session1_name = "Test Session 1"
+        session2_name = "Test Session 2"
+        
+        # Create first session
+        response = auth_client.post('/api/new_session', json={
+            'session_name': session1_name,
+            'persona': 'CBT'
+        })
+        assert response.status_code == 200
+        
+        # Add messages to first session
+        response = auth_client.post('/api/chat', json={
+            'messages': [{'role': 'user', 'content': 'Hello from session 1'}],
+            'session_name': session1_name,
+            'session_type': 'CBT'
+        })
+        assert response.status_code == 200
+        
+        # Create second session (this should make it the current session)
+        response = auth_client.post('/api/new_session', json={
+            'session_name': session2_name,
+            'persona': 'Life Coach'
+        })
+        assert response.status_code == 200
+        
+        # Add messages to second session
+        response = auth_client.post('/api/chat', json={
+            'messages': [{'role': 'user', 'content': 'Hello from session 2'}],
+            'session_name': session2_name,
+            'session_type': 'Life Coach'
+        })
+        assert response.status_code == 200
+        
+        # Verify session 2 is currently active
+        cursor.execute("""
+            SELECT session_name, current FROM sessions 
+            WHERE session_name IN (%s, %s)
+            ORDER BY session_name
+        """, (session1_name, session2_name))
+        sessions = cursor.fetchall()
+        assert len(sessions) == 2
+        
+        # Find which session is current
+        current_sessions = {s['session_name']: s['current'] for s in sessions}
+        assert current_sessions[session1_name] == 0, "Session 1 should not be current"
+        assert current_sessions[session2_name] == 1, "Session 2 should be current"
+        
+        # Test restoring session 1
+        response = auth_client.post('/api/restore_chat', json={
+            'restore': session1_name
+        })
+        assert response.status_code == 204
+        
+        # Close the test cursor and create a fresh connection to see committed changes
+        cursor.close()
+        
+        # Import the same database connection function used by the app
+        from modules.db import get_db_connection
+        fresh_conn = get_db_connection()
+        fresh_cursor = fresh_conn.cursor()
+        
+        try:
+            # Debug: Let's see what's in the database after restore using fresh connection
+            fresh_cursor.execute("""
+                SELECT session_name, current, user_id FROM sessions 
+                WHERE session_name IN (%s, %s)
+                ORDER BY session_name
+            """, (session1_name, session2_name))
+            sessions = fresh_cursor.fetchall()
+            print(f"After restore, sessions: {sessions}")
+            
+            # Verify session 1 is now current and session 2 is not
+            current_sessions = {s['session_name']: s['current'] for s in sessions}
+            assert current_sessions[session1_name] == 1, f"Session 1 should now be current. Current sessions: {current_sessions}"
+            assert current_sessions[session2_name] == 0, "Session 2 should no longer be current"
+        finally:
+            fresh_cursor.close()
+            fresh_conn.close()
+            # Recreate the original cursor for cleanup
+            cursor = test_db.cursor()
+        
+        # Test restoring non-existent session
+        response = auth_client.post('/api/restore_chat', json={
+            'restore': 'Non-existent Session'
+        })
+        # This should return 404 for non-existent session
+        assert response.status_code == 404
+        
+        # Verify the current session is still session 1 (unchanged)
+        fresh_conn2 = get_db_connection()
+        fresh_cursor2 = fresh_conn2.cursor()
+        
+        try:
+            fresh_cursor2.execute("""
+                SELECT session_name, current FROM sessions 
+                WHERE session_name IN (%s, %s)
+                ORDER BY session_name
+            """, (session1_name, session2_name))
+            sessions = fresh_cursor2.fetchall()
+            current_sessions = {s['session_name']: s['current'] for s in sessions}
+            assert current_sessions[session1_name] == 1, "Session 1 should still be current"
+            assert current_sessions[session2_name] == 0, "Session 2 should still not be current"
+        finally:
+            fresh_cursor2.close()
+            fresh_conn2.close()
+        
+        # Test missing restore parameter
+        response = auth_client.post('/api/restore_chat', json={})
+        # This should return 400 for missing parameter
+        assert response.status_code == 400
+        
+        # Test with null restore parameter
+        response = auth_client.post('/api/restore_chat', json={
+            'restore': None
+        })
+        assert response.status_code == 400
+        
+        # Test with empty string restore parameter
+        response = auth_client.post('/api/restore_chat', json={
+            'restore': ''
+        })
+        assert response.status_code == 400
+        
+    finally:
+        # Cleanup test sessions
+        if cursor:
+            cursor.execute("DELETE FROM conversations WHERE session IN (%s, %s)", 
+                         (session1_name, session2_name))
+            cursor.execute("DELETE FROM sessions WHERE session_name IN (%s, %s)", 
+                         (session1_name, session2_name))
+            test_db.commit()
+            cursor.close()
+
+def test_get_chat_history_functionality(auth_client, test_db):
+    """Test the get_chat_history function returns all sessions correctly"""
+    try:
+        cursor = test_db.cursor()
+        
+        # Create multiple test sessions
+        session1_name = "History Test Session 1"
+        session2_name = "History Test Session 2"
+        
+        # Create first session
+        response = auth_client.post('/api/new_session', json={
+            'session_name': session1_name,
+            'persona': 'CBT'
+        })
+        assert response.status_code == 200
+        
+        # Add messages to first session
+        response = auth_client.post('/api/chat', json={
+            'messages': [{'role': 'user', 'content': 'Hello from session 1'}],
+            'session_name': session1_name,
+            'session_type': 'CBT'
+        })
+        assert response.status_code == 200
+        
+        # Create second session (this should make it the current session)
+        response = auth_client.post('/api/new_session', json={
+            'session_name': session2_name,
+            'persona': 'Life Coach'
+        })
+        assert response.status_code == 200
+        
+        # Add messages to second session
+        response = auth_client.post('/api/chat', json={
+            'messages': [{'role': 'user', 'content': 'Hello from session 2'}],
+            'session_name': session2_name,
+            'session_type': 'Life Coach'
+        })
+        assert response.status_code == 200
+        
+        # Now test get_chat_history API endpoint
+        response = auth_client.get('/api/chat_history')
+        assert response.status_code == 200
+        
+        history = json.loads(response.data)
+        assert isinstance(history, list), "Chat history should return a list"
+        
+        # Should only have 1 session in history (session1), not session2 which is current
+        assert len(history) == 1, f"Should have 1 non-current session in history, got {len(history)}"
+        
+        # Verify only non-current sessions are present
+        session_names = {session['session_name'] for session in history}
+        expected_names = {session1_name}  # session2 should NOT be included as it's current
+        assert session_names == expected_names, f"Expected non-current sessions: {expected_names}, Got: {session_names}"
+        
+        # Verify each session has the expected fields
+        for session in history:
+            assert 'session_name' in session, "Session should have 'session_name' field"
+            assert 'type' in session, "Session should have 'type' field"
+            assert 'message_count' in session, "Session should have 'message_count' field"
+            assert session['message_count'] >= 2, f"Each session should have at least 2 messages (user + assistant), got {session['message_count']}"
+        
+        # Verify session types are correct
+        session_types = {session['session_name']: session['type'] for session in history}
+        assert session_types[session1_name] == 'CBT'
+        
+        # Verify that the current session (session2) is NOT in history
+        assert session2_name not in session_names, "Current session should not appear in chat history"
+        
+        # Test that non-current sessions are included, current sessions are excluded
+        # First, verify only session2 is current
+        cursor.execute("""
+            SELECT session_name, current FROM sessions 
+            WHERE session_name IN (%s, %s)
+            ORDER BY session_name
+        """, (session1_name, session2_name))
+        sessions = cursor.fetchall()
+        
+        current_sessions = {s['session_name']: s['current'] for s in sessions}
+        assert current_sessions[session1_name] == 0, "Session 1 should not be current"
+        assert current_sessions[session2_name] == 1, "Session 2 should be current"
+        
+        # Only non-current sessions should appear in history (session1 but not session2)
+        # This verifies the correct logic: "WHERE s.current = 0"
+        assert len(history) == 1, "Only non-current sessions should be in history"
+        
+        print("✅ get_chat_history test passed - all sessions returned correctly")
+        
+    finally:
+        # Cleanup test sessions
+        if cursor:
+            cursor.execute("DELETE FROM conversations WHERE session IN (%s, %s)", 
+                         (session1_name, session2_name))
+            cursor.execute("DELETE FROM sessions WHERE session_name IN (%s, %s)", 
+                         (session1_name, session2_name))
+            test_db.commit()
+            cursor.close()
