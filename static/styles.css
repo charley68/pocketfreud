@@ -120,6 +120,7 @@ body.theme-dark {
   margin-bottom: 1rem; 
   z-index: 1;
   margin-left: auto;
+  margin-right: 4rem; /* Add right margin to avoid overlapping with hamburger */
   white-space: nowrap; 
 }
 
@@ -756,13 +757,6 @@ body.prod-env .modal button {
   background: rgba(255,255,255,0.1);
 }
 
-.hamburger {
-    display: block;
-  }
-  .nav-buttons {
-    display: none;
-  }
-
 .mobile-menu {
   transform: translateX(100%);
   transition: transform 0.3s ease;
@@ -803,6 +797,15 @@ body.prod-env .modal button {
 /* MOBILE */
 
 @media (max-width: 768px) {
+  /* Mobile navigation controls */
+  .hamburger {
+    display: block;
+  }
+  
+  .nav-buttons {
+    display: none;
+  }
+
   /* Index page: branding layout */
   .top-bar {
     flex-direction: column;
@@ -914,6 +917,17 @@ body.prod-env .modal button {
     justify-content: flex-start; /* align left like the other fields on desktop */
   }
 
+}
+
+/* Desktop navigation - ensure nav buttons are visible and keep hamburger menu */
+@media (min-width: 769px) {
+  .hamburger {
+    display: block;
+  }
+  
+  .nav-buttons {
+    display: flex;
+  }
 }
 
 /* Chat styles */

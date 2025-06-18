@@ -48,3 +48,4 @@ tf/patch-prod.sh
 tf/patch-test.sh
 tf/patch.sh
 
+.coverage

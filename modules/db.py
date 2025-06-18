@@ -1,15 +1,39 @@
 import os
 import pymysql
 from flask import session, current_app, jsonify
+from dbutils.pooled_db import PooledDB
+
+# Initialize connection pool at module load time
+_connection_pool = None
+
+def _init_connection_pool():
+    """Initialize the database connection pool."""
+    global _connection_pool
+    if _connection_pool is None:
+        _connection_pool = PooledDB(
+            creator=pymysql,  # the database module
+            maxconnections=20,  # maximum number of connections allowed
+            mincached=2,  # minimum number of idle connections in pool
+            maxcached=5,  # maximum number of idle connections in pool
+            maxshared=3,  # maximum number of shared connections
+            blocking=True,  # block if no connections available
+            maxusage=None,  # maximum number of reuses of a single connection
+            setsession=[],  # optional list of SQL commands to execute for sessions
+            ping=1,  # ping MySQL server to check if connection is still alive
+            host=os.environ['DB_HOST'],
+            user=os.environ['DB_USER'],
+            password=os.environ['DB_PASS'],
+            database=os.environ['DB_NAME'],
+            cursorclass=pymysql.cursors.DictCursor,
+            charset='utf8mb4',  # ensure proper character encoding
+            autocommit=False  # explicit transaction control
+        )
+    return _connection_pool
 
 def get_db_connection():
-    return pymysql.connect(
-        host=os.environ['DB_HOST'],
-        user=os.environ['DB_USER'],
-        password=os.environ['DB_PASS'],
-        database=os.environ['DB_NAME'],
-        cursorclass=pymysql.cursors.DictCursor
-    )
+    """Get a database connection from the connection pool."""
+    pool = _init_connection_pool()
+    return pool.connection()
 
 def init_db():
     conn = get_db_connection()
@@ -268,70 +292,82 @@ def get_next_session_name_api(user_id):
     return jsonify({"defaultName": session_name})
 
 def get_last_summary(user_id, session):
-
     conn = get_db_connection()
-    query = """
-        SELECT summary FROM summaries
-        WHERE user_id = %s AND session = %s
-        ORDER BY last_message_id DESC
-        LIMIT 1
-    """
-    with conn.cursor() as cursor:
-        cursor.execute(query, (user_id, session))
-        row = cursor.fetchone()
-        return row["summary"] if row else None
+    try:
+        query = """
+            SELECT summary FROM summaries
+            WHERE user_id = %s AND session = %s
+            ORDER BY last_message_id DESC
+            LIMIT 1
+        """
+        with conn.cursor() as cursor:
+            cursor.execute(query, (user_id, session))
+            row = cursor.fetchone()
+            return row["summary"] if row else None
+    finally:
+        conn.close()
 
 
 def get_last_summary_checkpoint(user_id, session):
-
     conn = get_db_connection()
-    query = """
-        SELECT last_message_id FROM summaries
-        WHERE user_id = %s AND session = %s
-        ORDER BY last_message_id DESC
-        LIMIT 1
-    """
-    with conn.cursor() as cursor:
-        cursor.execute(query, (user_id, session))
-        row = cursor.fetchone()
-        return row["last_message_id"] if row else 0
+    try:
+        query = """
+            SELECT last_message_id FROM summaries
+            WHERE user_id = %s AND session = %s
+            ORDER BY last_message_id DESC
+            LIMIT 1
+        """
+        with conn.cursor() as cursor:
+            cursor.execute(query, (user_id, session))
+            row = cursor.fetchone()
+            return row["last_message_id"] if row else 0
+    finally:
+        conn.close()
 
 
 def get_messages_after(user_id, session, last_msg_id):
-
     conn = get_db_connection()
-    query = """
-        SELECT role, message FROM conversations
-        WHERE user_id = %s AND session = %s AND id > %s
-        ORDER BY id ASC
-    """
-    with conn.cursor() as cursor:
-        cursor.execute(query, (user_id, session, last_msg_id))
-        rows = cursor.fetchall()
-        return [{"role": r["role"], "content": r["message"]} for r in rows]
+    try:
+        query = """
+            SELECT role, message FROM conversations
+            WHERE user_id = %s AND session = %s AND id > %s
+            ORDER BY id ASC
+        """
+        with conn.cursor() as cursor:
+            cursor.execute(query, (user_id, session, last_msg_id))
+            rows = cursor.fetchall()
+            return [{"role": r["role"], "content": r["message"]} for r in rows]
+    finally:
+        conn.close()
 
 
 def save_summary(user_id, session, summary_text, last_msg_id):
-
     conn = get_db_connection()
-    query = """
-        INSERT INTO summaries (user_id, session, summary, last_message_id, created_at)
-        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-    """
-    with conn.cursor() as cursor:
-        cursor.execute(query, (user_id, session, summary_text, last_msg_id))
-        conn.commit()
+    try:
+        query = """
+            INSERT INTO summaries (user_id, session, summary, last_message_id, created_at)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """
+        with conn.cursor() as cursor:
+            cursor.execute(query, (user_id, session, summary_text, last_msg_id))
+            conn.commit()
+    finally:
+        conn.close()
 
 def get_journals_by_days(user_id, days):
     conn = get_db_connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    cursor.execute("""
-        SELECT entry_date, mood, entry
-        FROM journals
-        WHERE user_id = %s AND entry_date >= CURDATE() - INTERVAL %s DAY
-        ORDER BY entry_date
-    """, (user_id, days))
-    return cursor.fetchall()
+    try:
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("""
+            SELECT entry_date, mood, entry
+            FROM journals
+            WHERE user_id = %s AND entry_date >= CURDATE() - INTERVAL %s DAY
+            ORDER BY entry_date
+        """, (user_id, days))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
 def verify_user_email(token):
     """Verify a user's email using their verification token"""
@@ -1023,4 +1059,27 @@ def delete_user_data(user_id):
     finally:
         cursor.close()
         conn.close()
+
+def shutdown_connection_pool():
+    """Shutdown the database connection pool. Call this when shutting down the application."""
+    global _connection_pool
+    if _connection_pool is not None:
+        try:
+            _connection_pool.close()
+        except Exception as e:
+            print(f"Error closing connection pool: {e}")
+        finally:
+            _connection_pool = None
+
+def get_pool_info():
+    """Get information about the current connection pool status (for debugging/monitoring)."""
+    global _connection_pool
+    if _connection_pool is None:
+        return {"status": "not_initialized"}
+    
+    # Note: PooledDB doesn't expose all stats, but we can provide basic info
+    return {
+        "status": "initialized",
+        "pool_type": "dbutils.pooled_db.PooledDB"
+    }
 
