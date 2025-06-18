@@ -3,7 +3,7 @@ import logging
 import json
 from flask import Flask, session, jsonify, request, redirect
 from werkzeug.middleware.proxy_fix import ProxyFix
-from modules.db import load_prompts_from_db, init_db, get_next_session_name_api, increment_session_counter
+from modules.db import load_prompts_from_db, init_db
 from modules.routes import register_routes
 from modules.extensions import mail
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -83,22 +83,6 @@ if not is_testing():
     init_db()
 
 register_routes(app)
-
-@app.route('/api/get-next-session-name', methods=['GET'])
-def api_get_next_session_name():
-    user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    return get_next_session_name_api(user_id)
-
-@app.route('/api/increment-session-counter', methods=['POST'])
-def api_increment_session_counter():
-    user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    increment_session_counter(user_id)
-    return jsonify({"success": True})
-
     
 # ----------------- 8. DEV ENTRY -----------------
 if __name__ == '__main__':

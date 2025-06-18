@@ -623,10 +623,14 @@ def test_static_routes(client):
     assert response.status_code == 200
     assert b'Privacy Policy' in response.data
     
-    # Test debug route
+    # Test debug route (now returns stats JSON)
     response = client.get('/debug')
     assert response.status_code == 200
-    assert b'DEBUG ROUTE OK' in response.data
+    assert response.is_json
+    data = response.get_json()
+    assert data['status'] == 'success'
+    assert 'conversations' in data['data']
+    assert 'users' in data['data']
     
     # Test logout
     response = client.get('/logout', follow_redirects=True)

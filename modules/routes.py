@@ -53,7 +53,10 @@ from modules.db import (
     get_session_types,
     delete_session,
     get_journals_by_days,
-    load_user_settings
+    load_user_settings,
+    get_stats,
+    get_next_session_name_api,
+    increment_session_counter
 )
 
 from modules.helpers import (
@@ -73,17 +76,6 @@ from modules.helpers import (
 )
 
 
-
-HOTLINES = {
-    "GB": "0800 689 5652",
-    "UK": "0800 689 5652",
-    "US": "988",
-    "USA": "988",
-    "CA": "1-833-456-4566",
-    "AU": "13 11 14",
-    "IN": "91-22-27546669"
-    # Add more...
-}
 
 def register_routes(app):
     # -------------------- CONTEXT PROCESSORS --------------------
@@ -126,7 +118,20 @@ def register_routes(app):
 
     @app.route('/debug')
     def debug():
-        return "DEBUG ROUTE OK", 200
+        try:
+            stats_data = get_stats()
+            return jsonify({
+                'status': 'success',
+                'data': {
+                    'conversations': stats_data['conversations'],
+                    'users': stats_data['users']
+                }
+            })
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': str(e)
+            }), 500
 
 
     @app.route('/signin', methods=['GET', 'POST'])
@@ -948,10 +953,23 @@ def register_routes(app):
         
         return render_template('contact.html')
 
+    # Session management API routes
+    @app.route('/api/get-next-session-name', methods=['GET'])
+    @login_required()
+    def api_get_next_session_name():
+        user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        return get_next_session_name_api(user_id)
 
-
-
-
+    @app.route('/api/increment-session-counter', methods=['POST'])
+    @login_required()
+    def api_increment_session_counter():
+        user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        increment_session_counter(user_id)
+        return jsonify({"success": True})
 def login_required():
     def decorator(f):
         @wraps(f)
@@ -967,3 +985,15 @@ def login_required():
 
 def lookup_hotline(country_code):
     return HOTLINES.get(country_code.upper(), "N/A")
+
+# Crisis hotlines by country
+HOTLINES = {
+    "US": "988",
+    "AU": "13 11 14",
+    "CA": "1-833-456-4566",
+    "UK": "116 123",
+    "FR": "01 45 39 40 00",
+    "DE": "0800 111 0 111",
+    "JP": "03-5286-9090",
+    "IN": "91-22-2754-6669"
+}

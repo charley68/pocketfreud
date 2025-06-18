@@ -1083,3 +1083,25 @@ def get_pool_info():
         "pool_type": "dbutils.pooled_db.PooledDB"
     }
 
+def get_stats():
+    """Get basic database statistics."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Get conversation count
+        cursor.execute("SELECT COUNT(*) as count FROM conversations")
+        conversation_count = cursor.fetchone()['count']
+        
+        # Get user count
+        cursor.execute("SELECT COUNT(*) as count FROM users")
+        user_count = cursor.fetchone()['count']
+        
+        return {
+            'conversations': conversation_count,
+            'users': user_count
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
