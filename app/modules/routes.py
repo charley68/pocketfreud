@@ -448,7 +448,7 @@ def register_routes(app):
         data = request.get_json(force=True)
         messages = data.get('messages', [])
         persona = "Casual Chat"
-        user_id = session['user_id']
+        user_id = getattr(current_user, "id", None)
         session_name = "Casual"
 
         conv_history = build_conv_history(messages[:-1], persona)
@@ -484,12 +484,12 @@ def register_routes(app):
     @app.route('/settings', methods=['GET', 'POST'])
     @login_required
     def settings():
-        if 'user_id' not in session:
+        user_id = getattr(current_user, "id", None)
+        if not user_id:
             return redirect(url_for('signin'))
-        
+
         if request.method == 'POST':
             # Update settings
-            user_id = session['user_id']
             settings = {
                 'typing_delay': request.form.get('typing_delay'),
                 'voice': request.form.get('voice'),
@@ -504,10 +504,9 @@ def register_routes(app):
             updated_settings = session.get('user_settings', {})
             updated_settings.update({k: str(v) for k, v in settings.items() if v is not None})
             session['user_settings'] = updated_settings
-            
             flash("Settings updated successfully!")
             return redirect(url_for('settings'))
-        
+
         # GET request - show settings page
         settings = session.get('user_settings', {})
         if not settings:
@@ -520,7 +519,7 @@ def register_routes(app):
                 'summary_count': 100
             }
         return render_template('settings.html', 
-                             username=session.get('username'),
+                             username=getattr(current_user, "username", None),
                              settings=settings)
 
 
@@ -971,13 +970,14 @@ def register_routes(app):
 
     @app.route('/change_subscription')
     def change_subscription():
-        if 'user_id' not in session:
+        user_id = getattr(current_user, "id", None)
+        if not user_id:
             flash("Please log in to change your subscription.")
             return redirect(url_for('signin'))
         return render_template(
             'subscription.html',
             change_mode=True,
-            current_plan=session['user_subscription']['plan_type'],
+            current_plan=session.get('user_subscription', {}).get('plan_type'),
             available_plans=['basic', 'professional', 'premium'])
 
 
@@ -985,23 +985,21 @@ def register_routes(app):
     @app.route('/update_subscription/<plan>')
     @app.route('/update_user_subscription/<plan>')  # Adding alias for compatibility
     def update_user_subscription(plan):
-        if 'user_id' not in session:
+        user_id = getattr(current_user, "id", None)
+        if not user_id:
             return redirect(url_for('signin'))
-            
+
         if plan not in ['basic', 'professional', 'premium']:
             flash("Invalid plan selected.")
             return redirect(url_for('change_subscription')), 400
 
         try:
-            user_id = session['user_id']
             update_subscription(user_id, plan)
-            
             # Update session
             session['user_subscription'] = {
                 'plan_type': plan,
                 'is_active': True
             }
-            
             flash(f"Successfully updated to {plan.upper()} plan!")
             return redirect(url_for('home'))
         except Exception as e:
@@ -1093,7 +1091,7 @@ def register_routes(app):
     @app.route('/api/get-next-session-name', methods=['GET'])
     @login_required
     def api_get_next_session_name():
-        user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
+        user_id = getattr(current_user, "id", None)
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
         return get_next_session_name_api(user_id)
@@ -1101,7 +1099,7 @@ def register_routes(app):
     @app.route('/api/increment-session-counter', methods=['POST'])
     @login_required
     def api_increment_session_counter():
-        user_id = session.get('user_id')  # Ensure user_id is retrieved from the session
+        user_id = getattr(current_user, "id", None)
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
         increment_session_counter(user_id)

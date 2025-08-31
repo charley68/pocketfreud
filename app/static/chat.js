@@ -9,6 +9,19 @@ let availableVoices = [];
 let speechEnabled = false;
 let APP_CONFIG = {};
 
+// Add Enter/Return key support for sending chat (top-level, always active)
+const userInputField = document.getElementById("userInput");
+if (userInputField) {
+  userInputField.addEventListener("keydown", function(event) {
+    if ((event.key === "Enter" || event.key === "Return") && !event.shiftKey) {
+      event.preventDefault();
+      if (!userInputField.disabled) {
+        sendChatMessage();
+      }
+    }
+  });
+}
+
 // ---- safety shims (must be before any use of `settings`) ----
 if (typeof window === 'object' && typeof window.settings === 'undefined') {
   window.settings = {};
@@ -289,7 +302,7 @@ async function sendChatMessage() {
       } else {
         // Animate the final reply
         hasAnimatedReply = true;
-        speakText(reply, { force: true });
+  speakText(reply);
         const words = reply.split(" ");
         let i = 0;
         const interval = setInterval(() => {
@@ -436,3 +449,12 @@ function setInputDisabled(disabled) {
     }
   });
 }
+
+function scrollChatToBottom() {
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// After rendering all historic messages, call scrollChatToBottom()
+window.addEventListener('DOMContentLoaded', () => {
+  scrollChatToBottom();
+});
