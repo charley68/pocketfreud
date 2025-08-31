@@ -1,0 +1,1042 @@
+/* Combined styles.css for chat.html and welcome.html */
+
+/*html, body {
+  margin: 0;
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: 'Inter', sans-serif;
+  color: white;
+}*/
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.top-bar.authenticated {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;        /* ✅ centers the branding */
+  padding: 0.75rem 1rem;
+  background: #2c145a;
+  color: white;
+  flex-wrap: nowrap;
+}
+
+main {
+  padding-top: 80px; /* match height of .top-bar */
+}
+
+/* Separate background themes for each environment */
+body.test-env::before {
+  background: linear-gradient(to bottom, #4e944f, #e4c580);
+}
+
+body.prod-env::before {
+  background: linear-gradient(to bottom, #2a084a, #5f90b5);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body.test-env {
+  background: linear-gradient(to bottom, #4e944f, #e4c580);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+body.prod-env {
+  background: linear-gradient(to bottom, #2a084a, #5f90b5);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+body.theme-earthy {
+  background: linear-gradient(to bottom, #4e944f, #e4c580);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+body.theme-dark {
+  background: linear-gradient(to bottom, #2a084a, #5f90b5);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+
+.header-bar, .top-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap; 
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 2rem;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1000;
+}
+
+
+
+.logo {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.2rem;
+  height: 70px;
+  margin-bottom: 0; /* ✅ shrink margin under logo */
+
+}
+
+.app-title {
+  margin: 0;
+  margin-top: 3rem;
+  font-size: 2.8rem;
+  font-weight: 700;
+}
+
+.branding {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  margin: 0;
+}
+
+
+.nav-buttons, nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem; 
+  z-index: 1;
+  margin-left: auto;
+  margin-right: 4rem; /* Add right margin to avoid overlapping with hamburger */
+  white-space: nowrap; 
+}
+
+nav span {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.nav-button {
+  background-color: #7BAFD4;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+.logout-button {
+  background-color: #7BAFD4;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  margin-left: auto;
+  white-space: nowrap;
+  margin-top: 8px;
+}
+
+.logout-button:hover {
+  background-color: #6aa3c7;
+}
+
+.nav-button:hover {
+  background-color: #6aa3c7;
+}
+
+
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+
+button, .btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: #7BAFD4;
+  color: white;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:hover, .btn:hover {
+  background-color: #6aa3c7;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: space-around;
+  padding: 0.6rem 0;
+  backdrop-filter: blur(10px);
+  z-index: 400;
+}
+
+.bottom-nav a {
+  text-decoration: none;
+  color: white;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bottom-nav div {
+  color: #eee;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bottom-nav div i {
+  font-size: 1.2rem;
+}
+
+
+
+
+
+
+
+.label-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.more-button {
+  cursor: pointer;
+}
+
+.more-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.more-menu {
+  display: none;
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 8px;
+  padding: 0.4rem 0;
+  flex-direction: column;
+  min-width: 130px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.more-menu.show {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.more-menu a {
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: block;
+  text-align: left;
+}
+
+.more-menu a:hover {
+  background-color: #444;
+}
+
+#historyModal .modal {
+  max-height: 80vh;  /* limit height to 80% of viewport height */
+  overflow-y: auto;  /* enable vertical scrolling */
+}
+
+#historyTable {
+  border-collapse: collapse;
+  width: 100%;
+  color: #333;
+  margin-bottom: 1rem; /* add some space before the close button */
+}
+
+#historyTable th, #historyTable td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+}
+
+#historyTable button {
+  background-color: #7BAFD4;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#historyTable button:hover {
+  background-color: #6aa3c7;
+}
+
+#historyTable .delete-btn {
+  background-color: transparent;
+  color: #666;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+#historyTable .delete-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.hero {
+  text-align: center;
+  margin-top: 3vh;
+  padding: 0 1rem;
+}
+
+.hero h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: auto;
+}
+
+.cta-buttons {
+  margin-top: 2.5rem;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  margin: 3rem 1rem;
+}
+
+.feature-card {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 700px;
+  width: 90%;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-icon {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.feature-icon img {
+  width: 100%;          /* Increase from ~50% */
+  height: 100%;         /* Keep same ratio */
+  object-fit: contain;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.feature-text h3 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.feature-text p {
+  margin: 0;
+  font-size: 1rem;
+  color: #ddd;
+}
+
+
+
+.container {
+  padding: 2rem 1rem 5rem;
+  text-align: center;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+}
+
+.emojis {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  max-width: 350px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.emoji-button {
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-button img {
+  width: 75px !important;
+  height: 75px !important;
+  object-fit: contain;
+}
+
+.emoji-button:hover {
+  transform: scale(1.2);
+  opacity: 0.7;
+}
+
+.menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background 0.2s ease;
+  width: 250px;              /* ✅ Force all buttons to same width */
+  margin: 0.5rem auto;
+  cursor: pointer;
+  box-sizing: border-box;
+  appearance: none;
+}
+
+
+
+.menu-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.menu-button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+.title-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.footer-text {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #f0f3f5;
+  margin-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.footer-text a {
+  margin-top: 0rem;  /* was 2rem */
+  color: white;
+  text-decoration: none;
+}
+
+.footer-text a:hover {
+  text-decoration: underline;
+}
+
+
+.plan-badge-container {
+  position: absolute;
+  right: 1rem;
+}
+
+/*
+.plan-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background-color: #f6b600;
+  color: #1e1e1e;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+*/
+
+.plan-badge {
+  position: absolute;
+  top: 4.9rem;  /* below the logo */
+  left: 1.3rem;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background-color: #f6b600;
+  color: #1e1e1e;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 1500;
+  width: fit-content;
+  max-width: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* MODAL DEISGN - POPUPS */
+.modal {
+  background: white;
+  color: #333;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  flex-direction: row;      /* ✅ horizontal layout */
+  justify-content: center;  /* ✅ center buttons as a group */
+  gap: 1rem;                /* ✅ space between them */
+  margin-top: 1.5rem;
+}
+
+
+.modal-buttons button {
+  padding: 0.75rem 1.2rem;
+  border: none;
+  background: #7BAFD4;
+  color: white;
+  font-size: 1rem;
+  border-radius: 8px;
+  min-width: 120px;  /* 👈 Makes buttons uniform */
+  text-align: center;
+  cursor: pointer;
+}
+
+.modal-buttons button:hover {
+  background-color: #6aa3c7;
+}
+
+.modal h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+
+
+/* Base modal style */
+/*
+.modal {
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  color: #333;
+}
+
+/* Apply a themed background or border depending on environment */
+
+.modal {
+  background: linear-gradient(to bottom, #e0f2ff, #f4faff); /* soft light blue gradient */
+  border-radius: 0.75rem; /* slightly smaller */
+  padding: 1.2rem 1rem;    /* less bulky padding */
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;        /* lighter than bold, but not thin */
+  max-width: 360px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+/* Themed border based on environment */
+body.test-env .modal {
+  border: 2px solid #4e944f;
+}
+
+body.prod-env .modal {
+  border: 2px solid #2a084a;
+}
+
+/* Buttons */
+.modal button {
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.help-box.hidden {
+  display: none;
+}
+.help-box {
+  font-size: 0.9rem;
+  color: #444;
+  background: #f9f9f9;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+}
+
+.nav-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.nav-disabled div,
+.nav-disabled i {
+  filter: grayscale(100%);
+  color: #bbb;
+}
+
+.nav-disabled:hover {
+  background: none;
+  text-decoration: none;
+}
+
+
+.footer-spacer {
+  height: 70px; /* or whatever your .bottom-nav height is */
+}
+
+/* Themed button colors 
+body.test-env .modal button {
+  background-color: #4e944f;
+  color: white;
+}
+
+body.prod-env .modal button {
+  background-color: #2a084a;
+  color: white;
+}*/
+
+.hamburger {
+  font-size: 1.8rem;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: white;
+  display: none;
+  z-index: 2000;
+}
+
+.mobile-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 70px; /* just below the top bar */
+  right: 10px;
+  background: rgba(0, 0, 0, 0.95);
+  border-radius: 10px;
+  padding: 0.5rem 0;
+  min-width: 180px;
+  z-index: 3000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu a {
+  color: white;
+  padding: 0.8rem 1.2rem;
+  text-decoration: none;
+  font-size: 1.05rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.mobile-menu a:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.mobile-menu {
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.mobile-menu.show {
+  display: flex;
+  transform: translateX(0);
+}
+
+.mobile-menu-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.mobile-menu-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.mobile-menu-close:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+  /* Mobile navigation controls */
+  .hamburger {
+    display: block;
+  }
+  
+  .nav-buttons {
+    display: none;
+  }
+
+  /* Index page: branding layout */
+  .top-bar {
+    flex-direction: column;
+    align-items: center;
+    justify-content: right;
+    padding: 1.2rem 1rem;
+    position: relative;
+    text-align: center;
+  }
+
+  main {
+    padding-top: 10px; /* match height of .top-bar */
+  }
+
+
+  .top-bar.authenticated {
+    position: relative;
+    padding: 1rem;
+    text-align: center;
+  }
+
+
+
+
+
+
+  .top-bar.authenticated {
+
+    flex-direction: row; /* ✅ force row even on small screen */
+    flex-wrap: nowrap;
+  }
+
+  .branding {
+    position: static;
+    transform: none;
+    margin: 0.5rem 0;
+    width: 100%;
+    text-align: center;
+  }
+
+
+  .app-title {
+    font-size: 2.2rem;
+    margin: 0; /* ✅ remove big gaps above/below PocketFreud title */
+  }
+
+  .nav-buttons {
+    margin: 0.5rem auto;      /* ⬅️ center the whole block */
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+  }
+
+
+
+
+  .nav-button {
+    width: 160px;
+    text-align: center;
+  }
+
+
+
+  .header-bar {
+    flex-direction: row;  /* 🔁 was column */
+    align-items: center;
+    justify-content: space-between;  /* space out logo and nav */
+    padding: 1rem;
+    text-align: right;
+  }
+  
+  .header-bar nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;         /* ✅ Pushes nav to the far right */
+    text-align: right;
+  }
+
+
+  .header-bar nav span {
+    text-align: right;
+    width: 100%;
+  }
+
+
+
+
+
+  .top-bar.authenticated .nav-buttons {
+    margin-left: auto;
+    z-index: 2;
+  }
+  
+  .top-bar.authenticated .logout-button {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .logout-button {
+    margin: 0 auto;        /* ✅ center the button */
+    display: block;        /* ensures margin auto works */
+    text-align: center;    /* centers button text */
+  }
+
+
+  .g-recaptcha {
+    justify-content: flex-start; /* align left like the other fields on desktop */
+  }
+
+}
+
+/* Desktop navigation - ensure nav buttons are visible and keep hamburger menu */
+@media (min-width: 769px) {
+  .hamburger {
+    display: block;
+  }
+  
+  .nav-buttons {
+    display: flex;
+  }
+}
+
+/* Chat styles */
+.chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensure it takes full height */
+}
+
+#chatBox {
+  flex: 1; /* Allow chatBox to grow and take available space */
+  overflow-y: auto; /* Enable scrolling for overflowing content */
+  padding: 1rem;
+  margin-bottom: 1rem; /* Add spacing above the input box */
+  border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+  border-radius: 4px;
+  background-color: #f9f9f9; /* Optional: Background color for better contrast */
+}
+
+.input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;           /* 🔽 Reduce vertical gap */
+  padding: 0.6rem 1rem;  /* 🔽 Less padding overall */
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.input-row {
+  margin-bottom: 0.2rem;  /* 🔽 Tighten space between input and buttons */
+}
+
+#userInput {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 0;   /* 🔽 Remove extra space under buttons */
+}
+
+.icon-button {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  outline: none; /* Remove default button highlight */
+}
+
+.icon-button:active {
+  animation: pulse 0.2s ease;
+}
+
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* spacing between buttons */
+  align-items: center; /* center buttons horizontally */
+  margin-top: 2rem;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.icon-button.active img {
+  filter: brightness(1.2); /* Visual indicator for active state */
+}
+
+.icon {
+  width: 2rem;
+  height: 2rem;
+  transition: transform 0.2s ease;
+}

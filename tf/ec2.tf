@@ -3,7 +3,7 @@ resource "aws_instance" "app_server" {
 
   ami           = data.aws_ami.ubuntu.id
   #instance_type = "t3.medium"
-  instance_type = "t3.micro"
+  instance_type = "t4g.nano"
 
 
   subnet_id     = aws_subnet.public1.id
@@ -28,10 +28,22 @@ apt-get upgrade -y
 apt-get install -y python3 python3-pip python3-venv nginx git curl software-properties-common
 
 
+# --- (Optional) Small swap for t4g.nano ---
+fallocate -l 1G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=1024
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+if ! grep -q "/swapfile" /etc/fstab; then
+  echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+fi
+
+
+
 # Install Certbot
-add-apt-repository ppa:certbot/certbot -y
-apt-get update -y
-apt-get install -y certbot python3-certbot-nginx
+apt-get remove -y certbot || true
+snap install core; snap refresh core
+snap install --classic certbot
+ln -sf /snap/bin/certbot /usr/bin/certbot
 
 # --- Clone your app ---
 cd /opt
@@ -71,7 +83,7 @@ Environment="PATH=/opt/pocketfreud/venv/bin"
 Environment="FLASK_SECRET_KEY=$FLASK_SECRET_KEY"
 Environment="USE_OLLAMA=$USE_OLLAMA"
 Environment="OPENAI_API_KEY=$OPENAI_API_KEY"
-ExecStart=/opt/pocketfreud/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:app
+ExecStart=/opt/pocketfreud/venv/bin/gunicorn --workers 1 --bind 127.0.0.1:5000 app:app
 
 [Install]
 WantedBy=multi-user.target
@@ -128,17 +140,24 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 
+    location /test/static/ {
+      # Serve test static files directly without rewriting
+      proxy_pass http://127.0.0.1:5001/test/static/;
+      proxy_http_version 1.1;
+      proxy_set_header Host \$host;
+    }
+
     location /test {
         rewrite ^/test$ / break;
         proxy_pass http://127.0.0.1:5001;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
 
         # Remove `/test` from the path before passing to Flask
-        rewrite ^/test(/.*)$ $1 break;
+        rewrite ^/test(/.*)$ \$1 break;
     }
 
 }
@@ -157,11 +176,10 @@ EOT
 
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
-
+  owners      = ["099720109477"]
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-*"]
   }
 }
 

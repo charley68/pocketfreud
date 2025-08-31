@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Learn More - PocketFreud</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+
+
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+      color: #dce9f5;
+    }
+
+    .section {
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 1.8rem;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+
+    .section p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #d3e7f6;
+      margin-bottom: 1.5rem;
+    }
+
+    .features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .features-list li {
+      margin-bottom: 1.2rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: start;
+    }
+
+    .features-list li span {
+      font-size: 1.4rem;
+      margin-right: 0.75rem;
+    }
+
+    footer.footer-text {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #aacbe4;
+      margin: 4rem 0 2rem;
+    }
+
+    footer.footer-text a {
+      color: #88bde7;
+      text-decoration: none;
+    }
+
+    footer.footer-text a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+      .section h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+
+  <body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+  {% include 'includes/header_authenticated.html' %}
+
+
+
+  <!-- ✅ Hero Section -->
+  <section class="hero">
+    <h1>💡 Learn More About PocketFreud</h1>
+    <p>Your gentle AI companion for emotional support, mood tracking, and private journaling — available 24/7 with no judgment or pressure</p>
+  </section>
+
+  <!-- ✅ What Is It -->
+  <section class="section">
+    <h2>🎯 What Is PocketFreud?</h2>
+    <p>PocketFreud is designed to offer a calming, intelligent presence when you need to reflect, talk, or just feel heard. It’s not a therapist — it’s a compassionate assistant helping you through your emotional ups and downs.</p>
+  </section>
+
+  <!-- ✅ Features -->
+  <section class="section">
+    <h2>✨ Key Features</h2>
+    <ul class="features-list">
+      <li><span>😊</span> Mood tracking with visual charts and trends.</li>
+      <li><span>📓</span> Private journaling with emotional summaries.</li>
+      <li><span>🧠</span> Smart conversation with AI-driven reflections.</li>
+      <li><span>🕊️</span> Light Chat mode for casual venting (nothing saved).</li>
+      <li><span>🎯</span> Set goals and stay on track with guided support.</li>
+      <li><span>🔐</span> No personal info required — stay anonymous if you choose.</li>
+    </ul>
+  </section>
+
+  <!-- ✅ Privacy -->
+  <section class="section">
+    <h2>🔒 Your Privacy Comes First</h2>
+    <p>Your conversations are yours. PocketFreud stores minimal data, encrypted and never sold. You choose what to share, and you can delete anything at any time.</p>
+  </section>
+
+
+  <div class="footer-spacer"></div>
+  {% include 'includes/back_navigation.html' %}
+
+
+</body>
+</html>

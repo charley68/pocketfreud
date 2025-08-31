@@ -13,7 +13,7 @@ resource "aws_db_instance" "freud" {
   multi_az            = false   # Change this for none dev.
   publicly_accessible = true
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
-
+  apply_immediately = true
   lifecycle {
     prevent_destroy = true
   }

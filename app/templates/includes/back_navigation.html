@@ -1,0 +1,68 @@
+<!-- Back Navigation -->
+<button onclick="goBack()" class="back-fab" aria-label="Go Back">
+  ←
+</button>
+
+<script>
+function goBack() {
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = "{{ url_for('home') }}";
+  }
+}
+</script>
+
+<style>
+.back-fab {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 99999;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #1e2b42;
+  color: white;
+  border: none;
+  font-size: 2rem;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  pointer-events: auto;
+}
+.back-fab:hover {
+  background: #2a3b52;
+}
+@media (max-width: 600px) {
+  .back-fab {
+    bottom: 12px;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.6rem;
+  }
+}
+</style>
+.back-button:active {
+  transform: translateY(0);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .back-navigation {
+    bottom: 10px;
+    left: 10px;
+    top: auto;
+  }
+  
+  .back-button {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+</style>

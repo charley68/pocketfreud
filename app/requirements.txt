@@ -1,0 +1,9 @@
+flask
+requests
+gunicorn
+pymysql
+openai
+werkzeug
+Flask-Mail
+dbutils
+Flask-Login>=0.6.3

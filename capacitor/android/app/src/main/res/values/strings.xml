@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PocketFreud</string>
+    <string name="title_activity_main">PocketFreud</string>
+    <string name="package_name">com.pocketfreud.app</string>
+    <string name="custom_url_scheme">com.pocketfreud.app</string>
+</resources>

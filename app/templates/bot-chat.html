@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PocketFreud Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='bot-chat.css') }}">
+</head>
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+  {% include 'includes/header_authenticated.html' %}
+
+  <main>
+    <div class="chat-header stacked">
+      <h2 class="chat-title">
+        {% if is_therapy %}
+          {{ sessionName }} ({{ sessionType }})
+          <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">        
+        {% else %}
+          Let's Talk
+          <span class="info-icon-wrapper" onclick="openSuggestions()" title="Chat Suggestions">
+        {% endif %}
+          <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </span>
+      </h2>
+    </div>
+
+    <div class="chat-wrapper">
+      <div id="chatBox">
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="{{ 'user-message' if msg['role'] == 'user' else 'bot-message' }}">
+              <strong>{{ 'You' if msg['role'] == 'user' else 'PocketFreud' }}:</strong> {{ msg['message'] }}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="bot-message">
+            <strong>PocketFreud:</strong> Hi {{ username }}. How are you feeling today?
+          </div>
+        {% endif %}
+      </div>
+
+      <div id="inputArea" class="input-area">
+        <div class="input-row">
+          <input type="text" id="userInput" placeholder="Type something...">
+        </div>
+        <div class="button-row">
+
+          {% if is_casual %}
+          <button onclick="startNewChat()" class="icon-button">
+            <img src="{{ url_for('static', filename='icons/add-file.png') }}" alt="New" class="icon">
+          </button>
+          {% endif %}
+
+          <button id="sendButton" onclick="sendChatMessage()" class="icon-button">
+            <img src="{{ url_for('static', filename='icons/send.png') }}" alt="Send" class="icon">
+          </button>
+          <button id="speechToggleBtn" onclick="toggleSpeech()" class="icon-button" title="Toggle Speech">
+            <img src="{{ url_for('static', filename='icons/speaking.png') }}" alt="Speech" class="icon">
+          </button>
+
+          <button id="recordButton" type="button" class="icon-button mic" title="Hold to Talk"></button>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="bottom-nav">
+    <a href="{{ url_for('home') }}">
+      <div><i>🏠</i><div>Home</div></div>
+    </a>
+    <!--a href="{{ url_for('journal_calendar') }}">
+      <div><i>📓</i><div>Journal</div></div>
+    </a>
+    <a href="#">
+      <div><i>📊</i><div>Insights</div></div>
+    </a-->
+    <div class="more-container">
+      <div class="more-button" onclick="toggleMoreMenu()">
+        <i>⋯</i>
+        <div>More</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="suggestionsModal" class="modal-overlay">
+    <div class="suggestion-box">
+      <h2>Need ideas?</h2>
+      <ul id="suggestionsList"></ul>
+      <div class="modal-buttons">
+        <button onclick="closeSuggestions()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Session Modal -->
+  <div id="renameSessionModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Rename Therapy Session</h2>
+      <input type="text" id="renameSessionInput" placeholder="Enter new session name" style="width: 90%; max-width: 240px; padding: 0.5rem; margin-top: 1rem;"/>
+      <div class="modal-buttons" style="margin-top: 1rem;">
+        <button onclick="submitRenameSession()">Rename</button>
+        <button onclick="closeRenameModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Therapy Type -->
+  <div id="changePersonaModal"  class="modal-overlay">
+    <div class="modal">
+      <h2>🧠 Change Therapy Style</h2>
+      <label for="therapyTypeSelect">Select Therapy Type:</label>
+      <select id="therapyTypeSelect"></select>
+      <div class="modal-buttons" style="margin-top: 1rem;">
+        <button onclick="closeChangePersonaModal()">Cancel</button>
+        <button onclick="submitChangePersona()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  {% include 'about_modal.html' %}
+
+  <div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Confirm Deletion</h2>
+      <p>This will delete your current conversation. Are you sure?</p>
+      <div class="modal-buttons">
+        <button onclick="confirmDelete()">Yes, Delete</button>
+        <button onclick="closeDeleteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
+    <a href="#" onclick="about()">🌀 About</a>
+    <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+    {% if is_therapy %}
+      <a href="#" onclick="renameTherapySession()">✏️ Rename Session</a>
+      <a href="#" onclick="changePersona()">🧠 Change Therapy Style</a>
+    {% endif %}
+    <a href="{{ url_for('logout') }}">🔓 Logout</a>
+  </div>
+
+  <script>
+    window.ICON_DIR = "{{ url_for('static', filename='icons/') }}";
+  </script>
+
+  <script>
+    const SUGGESTIONS_URL = "{{ url_for('suggestions') }}";
+    let   CURRENT_SESSION_NAME = "{{ sessionName }}";   // was const
+    let   CURRENT_SESSION_TYPE = "{{ sessionType }}";   // was const
+    const IS_CASUAL  = {{ is_casual | tojson }};
+    const IS_THERAPY = {{ is_therapy | tojson }};
+    const settings   = {{ user_settings | tojson }};
+    const hotline    = "{{ session.get('hotline', '') }}";
+
+    fetch("https://ipapi.co/json/")
+      .then(res => res.json())
+      .then(data => {
+        return fetch("/set_country", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country: data.country })
+        });
+      })
+      .catch(() => { /* noop */ });
+
+    // Web-only mic UI (avoid clashing with chat.js's isNative())
+    const IS_NATIVE_ENV = !!(window.Capacitor?.getPlatform && ['ios','android'].includes(window.Capacitor.getPlatform()));
+
+    if (!IS_NATIVE_ENV) {
+      const recordBtn = document.getElementById('recordButton');
+      if (recordBtn) {
+        let isRecording = false;
+        function startRecording() {
+          recordBtn.classList.add('active');
+          recordBtn.setAttribute('aria-pressed', 'true');
+          isRecording = true;
+        }
+        function stopRecording() {
+          recordBtn.classList.remove('active');
+          recordBtn.setAttribute('aria-pressed', 'false');
+          isRecording = false;
+        }
+        recordBtn.addEventListener('pointerdown', startRecording);
+        recordBtn.addEventListener('touchstart', startRecording);
+        recordBtn.addEventListener('pointerup', stopRecording);
+        recordBtn.addEventListener('touchend', stopRecording);
+        recordBtn.addEventListener('click', stopRecording);
+        recordBtn.addEventListener('pointerleave', stopRecording);
+        document.addEventListener('pointerup', stopRecording);
+        document.addEventListener('pointercancel', stopRecording);
+        document.addEventListener('touchend', stopRecording);
+        document.addEventListener('touchcancel', stopRecording);
+      }
+    }
+  </script>
+
+  <script src="{{ url_for('static', filename='chat.js') }}"></script>
+  <script src="{{ url_for('static', filename='common.js') }}"></script>
+  <script src="{{ url_for('static', filename='stt.js') }}?v=13"></script>
+</body>
+</html>

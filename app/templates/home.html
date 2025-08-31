@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home - PocketFreud</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <style>
+  /* Responsive modal overlay and modal for mobile */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(30, 34, 54, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+  .modal-overlay.show {
+    display: flex;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem;
+    max-width: 400px;
+    width: 90vw;
+    margin: 2rem auto;
+    position: relative;
+    box-sizing: border-box;
+  }
+  @media (max-width: 600px) {
+    .modal {
+      max-width: 96vw;
+      width: 96vw;
+      min-width: 0;
+      padding: 1rem;
+      margin: 0 auto;
+      border-radius: 10px;
+      box-sizing: border-box;
+      /* Ensure modal doesn't overflow vertically */
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+  }
+
+  /* Specific fix for the New Session modal */
+  #newSessionModal .modal {
+    max-width: 400px;
+    width: 90vw;
+    margin: 2rem auto;
+    box-sizing: border-box;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  @media (max-width: 600px) {
+    #newSessionModal .modal {
+      max-width: 96vw;
+      width: 96vw;
+      min-width: 0;
+      padding: 1rem;
+      margin: 0 auto;
+      border-radius: 10px;
+      box-sizing: border-box;
+      max-height: 90vh;
+      overflow-y: auto;
+      align-items: stretch;
+      justify-content: center;
+    }
+    #newSessionModal.modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+  }
+
+  /* Make input/select fields fill modal width responsively */
+  #newSessionModal input[type="text"],
+  #newSessionModal select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Optional: make labels wrap on small screens */
+  @media (max-width: 600px) {
+    #newSessionModal .modal {
+      font-size: 1rem;
+    }
+    #newSessionModal label {
+      font-size: 1rem;
+      word-break: break-word;
+    }
+  }
+  </style>
+</head>
+
+<body class="{{ 'test-env' if ENV == 'test' else 'prod-env' }}">
+
+  {% include 'includes/header_authenticated.html' %}
+
+
+
+  <!-- ✅ Main Content -->
+  <div class="container">
+    <h1>Hi {{ username }}, how are you feeling today?</h1>
+
+    <div class="emojis">
+          <span class="emoji-button" onclick="logMood('happy')"><img src="{{ url_for('static', filename='icons/happy.png') }}" alt="happy" title="Happy"></span>
+        <span class="emoji-button" onclick="logMood('neutral')"><img src="{{ url_for('static', filename='icons/neutral.png') }}" alt="neutral" title="Neutral"></span>
+        <span class="emoji-button" onclick="logMood('sad')"><img src="{{ url_for('static', filename='icons/sad.png') }}" alt="sad" title="Sad"></span>
+        <span class="emoji-button" onclick="logMood('anxious')"><img src="{{ url_for('static', filename='icons/anxious.png') }}" alt="anxious" title="Anxious"></span>
+        <span class="emoji-button" onclick="logMood('angry')"><img src="{{ url_for('static', filename='icons/angry.png') }}" alt="angry" title="Angry"></span>
+      </div>
+      
+      <div id="happyModal" class="modal-overlay">
+        <div class="modal">
+          <h2>Glad you're feeling good! 🎉</h2>
+          <div class="modal-buttons">
+            <button onclick="closeHappyModal()">Close</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="supportModal" class="modal-overlay">
+        <div class="modal">
+          <h2>Your mood has been noted in today's journal.</h2>
+          <div class="modal-buttons" style="margin-top: 1rem;">
+            <button onclick="closeSupportModal()">Close</button>
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="home-buttons">
+        <button id="therapyButton" class="menu-button">🧠 Therapy Session</button>
+        <a href="{{ url_for('casual_chat') }}" class="menu-button">💬 Casual Chat</a>
+        <a href="{{ url_for('journal') }}" class="menu-button">📝 Journal Entry</a>
+        <button class="menu-button disabled" onclick="comingSoon('Goals')">🎯 Today’s Goal</button>
+      </div>
+
+  </div>
+
+    <!-- ✅ Bottom Nav -->
+    <div class="bottom-nav">
+      <a href="{{ url_for('journal_calendar') }}"><div><i>📓</i><div>Journal</div></div></a>
+      <a href="{{ url_for('insights') }}"><div><i>📓</i><div>📊 Insights</div></div></a>
+      <div class="more-container">
+        <div class="more-button" onclick="toggleMoreMenu()">
+          <i>⋯</i>
+          <div>More</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="more-menu" id="moreMenu" onclick="event.stopPropagation()">
+      <a href="#" onclick="about()">🌀 About</a>
+      <a href="{{ url_for('profile') }}">👤 Profile</a>
+      <a href="{{ url_for('settings') }}">⚙️ Settings</a>
+      <a href="{{ url_for('logout') }}">🔓 Logout</a>
+    </div>
+
+  <!-- Modal: Choose Therapy Option -->
+  <div id="chooseTherapyModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Therapy Session</h2>
+      <p>Please choose how you'd like to continue:</p>
+      <div class="modal-buttons" style="flex-direction: column; gap: 0.75rem; align-items: center;">
+        <button style="width: 200px;" id="continueCurrentBtn" onclick="window.location.href = '/therapy'">
+          Continue Session: <span id="currentSessionLabel" style="font-weight: bold; color: #205cde;"></span>
+        </button>
+        <button style="width: 200px;" onclick="openNewSessionModal()">Start New Session</button>
+        <button style="width: 200px;"  onclick="openSessionHistory()">Restore Existing Session</button>
+        <button style="width: 200px;" onclick="window.location.href='/'">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create new session_name -->
+  <div id="newSessionModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Start A New Session</h2>
+
+      <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 0.5rem;">
+        <label for="sessionNameInput" style="text-align: right;">Session Name:</label>
+        <input type="text" id="sessionNameInput" />
+      </div>
+
+      <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 0.5rem;">
+        <label for="sessionTypeSelect" style="text-align: right;">Therapy Type:</label>
+        <select id="sessionTypeSelect"></select>
+      </div>
+
+      <a href="#" onclick="toggleTherapyHelp()">What’s this?</a>
+      <div id="typeHelp" class="help-box hidden">
+    
+        Don't worry, you can change the therapy type anytime, even mid session.<br>
+        
+        
+        <p>
+        <strong>CBT:</strong> Helps reframe negative thoughts.<br>
+        <strong>DBT:</strong> Focuses on emotional regulation.<br>
+        <strong>Reflective:</strong> Encourage self-reflection<br>
+        <strong>Life Coach:</strong> Goal-driven encouragement.<br>
+        <strong>Casual Chat:</strong> Friendly, non-therapeutic support.</p>
+      </div>
+
+      <div class="modal-buttons">
+        <button onclick="confirmNewSession()">Start Session</button>
+        <button onclick="window.location.href = '/'">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  {% include 'about_modal.html' %}
+
+  <div class="modal-overlay" id="historyModal"> 
+    <div class="modal">
+      <h2>Your Chat History</h2>
+      <div class="table-container">
+        <table id="historyTable" style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+          <thead>
+            <tr>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Label</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Date</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Restore</th>
+              <th style="padding: 12px; background-color: #f5f5f5; border-bottom: 2px solid #ddd;">Delete</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="modal-buttons">
+        <button onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add this where your other modals are located -->
+  <div id="confirmDeleteModal" class="modal-overlay">
+    <div class="modal">
+      <h2>Confirm Delete</h2>
+      <p>Are you sure you want to delete session "<strong id="sessionToDelete"></strong>"?</p>
+      <div class="modal-buttons">
+        <button onclick="document.getElementById('confirmDeleteModal').classList.remove('show')">Cancel</button>
+        <button id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='home.js') }}"></script>
+  <script src="{{ url_for('static', filename='common.js') }}"></script>
+  <script>
+  // Set current session label and button visibility
+  document.addEventListener('DOMContentLoaded', function() {
+    // Use the correct template variable
+    var currentSessionName = "{{ current_session_name }}";
+    var label = document.getElementById('currentSessionLabel');
+    var continueBtn = document.getElementById('continueCurrentBtn');
+    if (currentSessionName && label && continueBtn) {
+      label.textContent = currentSessionName;
+      continueBtn.style.display = '';
+    } else if (continueBtn) {
+      continueBtn.style.display = 'none';
+    }
+  });
+
+  // Therapy button opens chooseTherapyModal
+  document.getElementById('therapyButton').onclick = function() {
+    document.getElementById('chooseTherapyModal').classList.add('show');
+  };
+</script>
+
+</body>
+</html>
